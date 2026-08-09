@@ -1,0 +1,17 @@
+# Segredos
+.env
+
+# Dados locais (parquets TLC baixados pelo script de ingestao)
+data/
+
+# Caches Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Ambiente virtual
+.venv/
+
+# Estado local de ferramentas Databricks
+.databricks/
