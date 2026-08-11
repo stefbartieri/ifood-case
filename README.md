@@ -261,6 +261,15 @@ ocupação para baixo.
 - Evolução incremental da ingestão (Auto Loader) para novos meses.
 - OPTIMIZE/liquid clustering quando o volume crescer.
 
+## Extra — Dashboard
+
+Entrega extra além do pedido no enunciado: um dashboard AI/BI nativo do
+Databricks SQL (`NYC Taxi — Respostas do Case`) com as duas respostas
+visualizadas a partir das views da gold — barras da P1 por mês e linhas da P2
+por hora com as séries `frota_completa`/`yellow`. Passo a passo de criação em
+[docs/manual_steps/006-dashboard.md](docs/manual_steps/006-dashboard.md);
+evidência em [docs/evidencias/006-dashboard.png](docs/evidencias/006-dashboard.png).
+
 ## Referências
 
 - NYC TLC Trip Record Data (dados e dicionários):
