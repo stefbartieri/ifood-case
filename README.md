@@ -1,9 +1,28 @@
-# ifood-case — Data Architect (NYC TLC Trip Records, Jan–Mai/2023)
+<div align="center">
 
-Case técnico do processo seletivo iFood — Data Architect: Data Lake em
-arquitetura medalhão no **Databricks Free Edition** com os dados públicos de
-corridas de táxi de Nova York (yellow + green), disponibilizados para consumo
-SQL e com as duas análises obrigatórias respondidas.
+# 🚖 ifood-case — Data Architect
+
+### Data Lake em arquitetura medalhão para 16,5 milhões de corridas de táxi de NY
+
+**NYC TLC Trip Records · Janeiro–Maio/2023 · yellow + green**
+
+![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
+![PySpark](https://img.shields.io/badge/PySpark-4.0-E25A1C?logo=apachespark&logoColor=white)
+![Delta Lake](https://img.shields.io/badge/Delta%20Lake-Unity%20Catalog-00ADD4)
+![Databricks](https://img.shields.io/badge/Databricks-Free%20Edition-FF3621?logo=databricks&logoColor=white)
+![Testes](https://img.shields.io/badge/testes-17%20aprovados-success)
+![Code style](https://img.shields.io/badge/code%20style-black-000000)
+![Lint](https://img.shields.io/badge/lint-ruff-D7FF64)
+
+[Arquitetura](#arquitetura) •
+[Como executar](#como-executar) •
+[Resultados](#resultados-e-interpretação) •
+[Justificativas](#justificativas-técnicas) •
+[Dashboard](#extra--dashboard)
+
+</div>
+
+---
 
 ## Visão geral
 
@@ -16,14 +35,22 @@ camada de consumo (gold), que expõe as 5 colunas obrigatórias do case e views
 SQL prontas. PySpark é usado em todas as transformações; as respostas são
 calculadas de forma independente em SQL e PySpark, com paridade verificada.
 
-**Respostas do case** (detalhes em [Resultados e interpretação](#resultados-e-interpretação)):
+> [!IMPORTANT]
+> **Respostas do case** (detalhes em [Resultados e interpretação](#resultados-e-interpretação)):
+>
+> - **P1 — média de `total_amount` por mês (yellow)**: Jan **US$ 27,46** ·
+>   Fev **27,37** · Mar **28,28** · Abr **28,78** · Mai **29,45** por corrida.
+> - **P2 — média de `passenger_count` por hora em maio/2023**: varia de
+>   **~1,26** (6h) a **~1,45** (2h) passageiros/corrida, praticamente idêntica
+>   entre a frota completa (yellow+green) e só yellow; a demanda absoluta de
+>   passageiros, por outro lado, tem **pico às 18h**.
 
-- **P1 — média de `total_amount` por mês (yellow)**: Jan **27,46** · Fev
-  **27,37** · Mar **28,28** · Abr **28,78** · Mai **29,45** (USD/corrida).
-- **P2 — média de `passenger_count` por hora em maio/2023**: varia de ~1,26
-  (6h) a ~1,45 (2h) passageiros/corrida, praticamente idêntica entre a frota
-  completa (yellow+green) e só yellow; a demanda absoluta de passageiros, por
-  outro lado, tem pico às 18h.
+<div align="center">
+
+| 🚕 16.526.016 corridas | ✅ 94,71% aproveitamento | 🔍 reconciliação exata (dif. 0) | 🧪 17 testes | ⚙️ pipeline em 1 comando |
+|:---:|:---:|:---:|:---:|:---:|
+
+</div>
 
 ## Arquitetura
 
@@ -116,12 +143,12 @@ ifood-case/
 - **Python 3.12 ou 3.13** para reprodução local (o pyspark 4.x **não suporta
   Python 3.14**; testes com Spark local exigem também Java 17+)
 - **git** e, opcionalmente, a **Databricks CLI** (binário standalone — não é
-  pacote pip) para upload via terminal
+  pacote pip) para upload e deploy via terminal
 - Dependências locais: `pip install -r requirements.txt`
 
 ## Como executar
 
-### Início rápido (scripts utilitários)
+### ⚡ Início rápido (scripts utilitários)
 
 A pasta [scripts/](scripts/) concentra as ações locais do projeto em um único
 comando por tarefa — Windows (`.ps1`) e macOS/Linux (`.sh`):
@@ -134,6 +161,8 @@ comando por tarefa — Windows (`.ps1`) e macOS/Linux (`.sh`):
 ```
 
 (equivalente em macOS/Linux: `./scripts/projeto.sh <ação>`)
+
+### 📋 Passo a passo documentado
 
 O projeto segue um modelo de **execução manual documentada**: o código e os
 guias vivem no repo; as ações no workspace são executadas seguindo os guias de
@@ -162,7 +191,7 @@ guias vivem no repo; as ações no workspace são executadas seguindo os guias d
    execute os notebooks de [analysis/](analysis/) (EDA, P1, P2) e as
    consultas de [analysis/sql/](analysis/sql/) no SQL Warehouse.
 
-### Execução automatizada (Databricks Asset Bundles)
+### 🤖 Execução automatizada (Databricks Asset Bundles)
 
 Alternativa aos passos 2–4 acima (com a landing já carregada — passo 1): o
 repositório traz um Asset Bundle ([databricks.yml](databricks.yml) +
@@ -180,7 +209,7 @@ passo a passo em
 [docs/manual_steps/007-bundles.md](docs/manual_steps/007-bundles.md). Para
 outro workspace, basta apontar o `host` de um target em `databricks.yml`.
 
-Qualidade de código local (na raiz do repo):
+### ✅ Qualidade de código local
 
 ```bash
 ruff check .        # lint
@@ -199,31 +228,31 @@ Jan–Mai/2023: **113** · dropoff ≤ pickup: **6.595** · `total_amount` negat
 **142.294** · `passenger_count` nulo ou zero: **725.837**. A reconciliação
 fecha com diferença **0** nos três escopos (yellow, green, total).
 
-### P1 — média de `total_amount` por mês (yellow taxis)
+### 💰 P1 — média de `total_amount` por mês (yellow taxis)
 
 | mês | média (USD) | corridas | benchmark¹ | desvio |
-|---------|-------|-----------|-------|-------|
-| 2023-01 | 27,46 | 2.917.665 | 27,44 | +0,02 |
-| 2023-02 | 27,37 | 2.764.200 | 27,33 | +0,04 |
-| 2023-03 | 28,28 | 3.226.999 | 28,26 | +0,02 |
-| 2023-04 | 28,78 | 3.109.876 | 28,76 | +0,02 |
-| 2023-05 | 29,45 | 3.319.397 | 29,46 | −0,01 |
+|:---:|:---:|:---:|:---:|:---:|
+| 2023-01 | **27,46** | 2.917.665 | 27,44 | +0,02 |
+| 2023-02 | **27,37** | 2.764.200 | 27,33 | +0,04 |
+| 2023-03 | **28,28** | 3.226.999 | 28,26 | +0,02 |
+| 2023-04 | **28,78** | 3.109.876 | 28,76 | +0,02 |
+| 2023-05 | **29,45** | 3.319.397 | 29,46 | −0,01 |
 
 ¹ Benchmark: convergência de soluções públicas independentes do mesmo case
 (sanidade externa). Paridade SQL × PySpark: diferença 0,000 nos 5 meses.
 Tendência: alta consistente de ~7% de janeiro a maio.
 
-### P2 — média de `passenger_count` por hora do dia (maio/2023)
+### 👥 P2 — média de `passenger_count` por hora do dia (maio/2023)
 
 Respondida em **dois escopos lado a lado**: `frota_completa` (yellow + green)
 e `yellow`. Extremos da ocupação média por corrida (48 valores, paridade
 SQL × PySpark OK em todos):
 
-| leitura | pico | valor | vale | valor |
-|---------|------|-------|------|-------|
-| Ocupação média por corrida (frota) | 2h | 1,454 | 6h | 1,262 |
-| Ocupação média por corrida (yellow) | 2h | 1,455 | 6h | 1,261 |
-| Demanda de passageiros/hora (frota) | 18h | 10.827/dia | 4h | 728/dia |
+| leitura | 📈 pico | valor | 📉 vale | valor |
+|---------|:---:|:---:|:---:|:---:|
+| Ocupação média por corrida (frota) | 2h | **1,454** | 6h | 1,262 |
+| Ocupação média por corrida (yellow) | 2h | **1,455** | 6h | 1,261 |
+| Demanda de passageiros/hora (frota) | 18h | **10.827/dia** | 4h | 728/dia |
 
 **Interpretação do escopo** ("todos os táxis"): a frota considerada é
 yellow + green, distinguida pela coluna `taxi_type` da gold. FHV/FHVHV (apps e
@@ -232,13 +261,14 @@ aluguel) ficaram **fora de escopo** porque seus arquivos não possuem a coluna
 volume de maio, as séries `frota_completa` e `yellow` são quase idênticas
 (diferença ≤ 0,003 em todas as horas).
 
-**Insight — duas leituras da mesma pergunta**: a média por corrida
-(`AVG(passenger_count)`) mede **ocupação** — madrugada tem menos corridas,
-porém mais cheias (grupos saindo de bares: pico às 2h). Já a soma de
-passageiros por hora (`SUM/31 dias`) mede **demanda** — o pico operacional
-real é às 18h (~10,8 mil passageiros/hora na frota), quando o volume de
-corridas domina. As duas leituras respondem perguntas de negócio diferentes;
-o notebook da P2 apresenta ambas.
+> [!TIP]
+> **Insight — duas leituras da mesma pergunta**: a média por corrida
+> (`AVG(passenger_count)`) mede **ocupação** — madrugada tem menos corridas,
+> porém mais cheias (grupos saindo de bares: pico às 2h). Já a soma de
+> passageiros por hora (`SUM/31 dias`) mede **demanda** — o pico operacional
+> real é às 18h (~10,8 mil passageiros/hora na frota), quando o volume de
+> corridas domina. As duas leituras respondem perguntas de negócio diferentes;
+> o notebook da P2 apresenta ambas.
 
 Nuance metodológica: `AVG()` ignora NULL, então o filtro de `passenger_count`
 da gold não altera a média da P2 — altera a contagem de corridas e a P1. O
@@ -249,11 +279,11 @@ ocupação para baixo.
 
 | Critério do case (PDF) | Evidência concreta neste repo |
 |---|---|
-| Qualidade e organização do código | Módulos Python puros testáveis (`src/bronze/schema_canonico.py`, `src/gold/build_gold.py`) espelhados nos notebooks com teste de consistência; `ruff` + `black` + `pytest` configurados em `pyproject.toml`; 17 testes; convenção de commits e uma branch por entrega, integradas com merges `--no-ff` |
-| Análise exploratória | `analysis/01_eda_nyc_taxi.py`: volumetria validada contra a origem, 6 hipóteses de anomalia confirmadas/refutadas com contagem (nulls, datas de 2001–2008, estornos de até −982,95, `payment_type=0` correlacionado 1:1 com nulls, `RatecodeID=99`, outlier de 342 mil milhas) e impacto da limpeza quantificado |
-| Justificativa das escolhas técnicas | Decisões documentadas neste README e nos docstrings/células markdown dos notebooks — ex.: leitura mês a mês por causa do **schema drift real** entre 2023-01 e 2023-02..05 (tipos e grafia `airport_fee`/`Airport_fee`); TIMESTAMP_NTZ sem conversão de fuso; limpeza só na gold com contagem por regra |
-| Criatividade | P2 respondida em dois escopos + dupla leitura ocupação × demanda; `dq_metrics` com atribuição por primeira regra violada e reconciliação exata; paridade SQL × PySpark como verificação cruzada; benchmarks externos de sanidade para a P1; guias de execução reproduzíveis em `docs/manual_steps/` |
-| Clareza na comunicação | Este README (arquitetura, execução, resultados com interpretação); guias passo a passo em `docs/manual_steps/`; notebooks com células markdown explicando cada etapa e tabelas finais de evidência |
+| 🧹 Qualidade e organização do código | Módulos Python puros testáveis (`src/bronze/schema_canonico.py`, `src/gold/build_gold.py`) espelhados nos notebooks com teste de consistência; `ruff` + `black` + `pytest` configurados em `pyproject.toml`; 17 testes; convenção de commits e uma branch por entrega, integradas com merges `--no-ff` |
+| 🔬 Análise exploratória | `analysis/01_eda_nyc_taxi.py`: volumetria validada contra a origem, 6 hipóteses de anomalia confirmadas/refutadas com contagem (nulls, datas de 2001–2008, estornos de até −982,95, `payment_type=0` correlacionado 1:1 com nulls, `RatecodeID=99`, outlier de 342 mil milhas) e impacto da limpeza quantificado |
+| ⚖️ Justificativa das escolhas técnicas | Decisões documentadas neste README e nos docstrings/células markdown dos notebooks — ex.: leitura mês a mês por causa do **schema drift real** entre 2023-01 e 2023-02..05 (tipos e grafia `airport_fee`/`Airport_fee`); TIMESTAMP_NTZ sem conversão de fuso; limpeza só na gold com contagem por regra |
+| 💡 Criatividade | P2 respondida em dois escopos + dupla leitura ocupação × demanda; `dq_metrics` com atribuição por primeira regra violada e reconciliação exata; paridade SQL × PySpark como verificação cruzada; benchmarks externos de sanidade para a P1; pipeline executável com 1 comando via Asset Bundle |
+| 🗣️ Clareza na comunicação | Este README (arquitetura, execução, resultados com interpretação); guias passo a passo em `docs/manual_steps/`; dashboard com as respostas; notebooks com células markdown explicando cada etapa e tabelas finais de evidência |
 
 ## Limitações e próximos passos
 
@@ -263,16 +293,16 @@ ocupação para baixo.
   isso Volume UC na landing), egresso de internet dos notebooks restrito a
   allowlist não publicada (por isso o download é local + upload manual), 1 SQL
   Warehouse 2X-Small.
-- **Execução manual documentada** (sem orquestrador): adequada ao case, não a
-  produção.
+- Orquestração via job único do Asset Bundle, **sem agendamento nem
+  monitoramento de produção** (adequado ao case).
 - **FHV/FHVHV fora de escopo** (sem `passenger_count`).
 - Tabelas pequenas (<1 GB): sem particionamento físico na gold nem OPTIMIZE.
 
 **Próximos passos naturais:**
 
-- Orquestração com Databricks Jobs ou Lakeflow Declarative Pipelines
-  (expectations declarativas substituiriam as regras manuais de DQ).
-- Dashboard de consumo sobre as views da gold.
+- CI (GitHub Actions) rodando lint, testes e `bundle validate` a cada push.
+- Agendamento e alertas no job (Lakeflow Declarative Pipelines com
+  expectations substituiria as regras manuais de DQ).
 - Evolução incremental da ingestão (Auto Loader) para novos meses.
 - OPTIMIZE/liquid clustering quando o volume crescer.
 
@@ -281,9 +311,16 @@ ocupação para baixo.
 Entrega extra além do pedido no enunciado: um dashboard AI/BI nativo do
 Databricks SQL (`NYC Taxi — Respostas do Case`) com as duas respostas
 visualizadas a partir das views da gold — barras da P1 por mês e linhas da P2
-por hora com as séries `frota_completa`/`yellow`. Passo a passo de criação em
-[docs/manual_steps/006-dashboard.md](docs/manual_steps/006-dashboard.md);
-evidência em [docs/evidencias/006-dashboard.png](docs/evidencias/006-dashboard.png).
+por hora com as séries `frota_completa`/`yellow`.
+
+<div align="center">
+
+![Dashboard NYC Taxi — Respostas do Case](docs/evidencias/006-dashboard.png)
+
+</div>
+
+Passo a passo de criação em
+[docs/manual_steps/006-dashboard.md](docs/manual_steps/006-dashboard.md).
 
 ## Referências
 
@@ -297,3 +334,11 @@ evidência em [docs/evidencias/006-dashboard.png](docs/evidencias/006-dashboard.
   <https://www.databricks.com/customers/ifood/lakeflow-declarative-pipelines>
 - Upload para Volumes / CLI:
   <https://docs.databricks.com/aws/en/ingestion/file-upload/upload-to-volume>
+
+---
+
+<div align="center">
+
+**Dados públicos NYC TLC** · **Databricks Free Edition** · **Delta Lake + Unity Catalog**
+
+</div>
