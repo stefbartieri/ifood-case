@@ -1,3 +1,7 @@
+# Reproducao local do case (lint, format, testes e script de ingestao).
+# pyspark requer Python <=3.13 para execucao local (3.14 nao suportado);
+# testes com Spark local exigem tambem Java 17+. No Databricks nada disso
+# e necessario (runtime serverless ja traz o Spark).
 pyspark==4.0.1
 requests==2.32.5
 pytest==8.4.1
