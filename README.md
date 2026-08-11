@@ -101,6 +101,7 @@ ifood-case/
 │   ├── 03_resposta_p2_media_passageiros_hora_maio.py
 │   └── sql/                      # consultas prontas para o SQL Warehouse
 ├── docs/manual_steps/            # guias passo a passo (modelo de execução manual)
+├── scripts/                      # utilitários de setup/execução (.ps1 e .sh)
 ├── tests/                        # pytest (schema canônico, regras de DQ)
 ├── databricks.yml                # Asset Bundle (deploy/execução automatizados)
 ├── resources/pipeline_job.yml    # job do pipeline como código (5 tasks)
@@ -119,6 +120,20 @@ ifood-case/
 - Dependências locais: `pip install -r requirements.txt`
 
 ## Como executar
+
+### Início rápido (scripts utilitários)
+
+A pasta [scripts/](scripts/) concentra as ações locais do projeto em um único
+comando por tarefa — Windows (`.ps1`) e macOS/Linux (`.sh`):
+
+```powershell
+.\scripts\projeto.ps1 setup      # cria a venv (Python 3.12/3.13) e instala dependências
+.\scripts\projeto.ps1 dados      # baixa os 10 parquets da TLC para data/landing (idempotente)
+.\scripts\projeto.ps1 qualidade  # ruff + black --check + pytest
+.\scripts\projeto.ps1 deploy     # bundle validate + deploy + run no Databricks
+```
+
+(equivalente em macOS/Linux: `./scripts/projeto.sh <ação>`)
 
 O projeto segue um modelo de **execução manual documentada**: o código e os
 guias vivem no repo; as ações no workspace são executadas seguindo os guias de
