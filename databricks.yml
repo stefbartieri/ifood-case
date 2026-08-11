@@ -1,0 +1,27 @@
+# Databricks Asset Bundle — deploy e execucao automatizados do pipeline.
+#
+# Uso (com a CLI autenticada no workspace de destino):
+#   databricks bundle validate                 # confere a configuracao
+#   databricks bundle deploy                   # sobe notebooks e cria o job
+#   databricks bundle run pipeline_nyc_taxi    # executa o pipeline completo
+bundle:
+  name: ifood-case
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Catalogo Unity Catalog usado pelo pipeline
+    default: workspace
+
+targets:
+  dev:
+    default: true
+    workspace:
+      host: https://dbc-3e5721dd-fe65.cloud.databricks.com
+  # Para rodar em OUTRO workspace, adicione um target com o host dele e
+  # execute os comandos com "-t <nome>", por exemplo:
+  # outro:
+  #   workspace:
+  #     host: https://<id-do-workspace>.cloud.databricks.com

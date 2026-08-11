@@ -93,6 +93,7 @@ ifood-case/
 │   ├── bronze/bronze_taxi_trips.py  # notebook Databricks da bronze
 │   ├── gold/build_gold.py        # regras de DQ e transformações da gold
 │   ├── gold/gold_taxi_trips.py   # notebook Databricks da gold + dq_metrics
+│   ├── gold/criar_views.py       # notebook que cria as views (task do job)
 │   └── gold/sql/create_views.sql # views SQL das 2 perguntas
 ├── analysis/                     # análises do case
 │   ├── 01_eda_nyc_taxi.py        # EDA (volumetria, anomalias, impacto da limpeza)
@@ -101,6 +102,8 @@ ifood-case/
 │   └── sql/                      # consultas prontas para o SQL Warehouse
 ├── docs/manual_steps/            # guias passo a passo (modelo de execução manual)
 ├── tests/                        # pytest (schema canônico, regras de DQ)
+├── databricks.yml                # Asset Bundle (deploy/execução automatizados)
+├── resources/pipeline_job.yml    # job do pipeline como código (5 tasks)
 ├── README.md
 ├── requirements.txt              # dependências pinadas
 └── pyproject.toml                # config de ruff, black e pytest
@@ -143,6 +146,24 @@ guias vivem no repo; as ações no workspace são executadas seguindo os guias d
    [docs/manual_steps/004-analises.md](docs/manual_steps/004-analises.md):
    execute os notebooks de [analysis/](analysis/) (EDA, P1, P2) e as
    consultas de [analysis/sql/](analysis/sql/) no SQL Warehouse.
+
+### Execução automatizada (Databricks Asset Bundles)
+
+Alternativa aos passos 2–4 acima (com a landing já carregada — passo 1): o
+repositório traz um Asset Bundle ([databricks.yml](databricks.yml) +
+[resources/pipeline_job.yml](resources/pipeline_job.yml)) que sobe os
+notebooks e executa o pipeline completo com 3 comandos, em qualquer workspace:
+
+```bash
+databricks bundle validate                 # confere a configuração
+databricks bundle deploy                   # sobe notebooks e cria o job
+databricks bundle run pipeline_nyc_taxi   # bronze → gold → views → análises
+```
+
+Pré-requisito: Databricks CLI autenticada com PAT no workspace de destino —
+passo a passo em
+[docs/manual_steps/007-bundles.md](docs/manual_steps/007-bundles.md). Para
+outro workspace, basta apontar o `host` de um target em `databricks.yml`.
 
 Qualidade de código local (na raiz do repo):
 

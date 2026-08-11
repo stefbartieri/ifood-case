@@ -1,0 +1,39 @@
+# Job do pipeline como codigo: bronze -> gold -> views -> analises.
+# Tasks sem configuracao de cluster rodam em compute serverless (unico
+# disponivel na Free Edition e portatil para qualquer workspace com
+# serverless habilitado).
+resources:
+  jobs:
+    pipeline_nyc_taxi:
+      name: "[ifood-case] pipeline nyc taxi (bronze -> gold -> views -> analises)"
+      tasks:
+        - task_key: bronze
+          notebook_task:
+            notebook_path: ../src/bronze/bronze_taxi_trips.py
+            base_parameters:
+              taxi_types: "yellow,green"
+              meses: "2023-01,2023-02,2023-03,2023-04,2023-05"
+
+        - task_key: gold
+          depends_on:
+            - task_key: bronze
+          notebook_task:
+            notebook_path: ../src/gold/gold_taxi_trips.py
+
+        - task_key: views
+          depends_on:
+            - task_key: gold
+          notebook_task:
+            notebook_path: ../src/gold/criar_views.py
+
+        - task_key: analise_p1
+          depends_on:
+            - task_key: views
+          notebook_task:
+            notebook_path: ../analysis/02_resposta_p1_media_total_amount_mes.py
+
+        - task_key: analise_p2
+          depends_on:
+            - task_key: analise_p1
+          notebook_task:
+            notebook_path: ../analysis/03_resposta_p2_media_passageiros_hora_maio.py
