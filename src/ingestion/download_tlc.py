@@ -20,6 +20,20 @@ from pathlib import Path
 
 import requests
 
+# Mantem as duas formas de execucao funcionando: como script
+# (python src/ingestion/download_tlc.py, forma documentada no README) e como
+# modulo (python -m src.ingestion.download_tlc). Sem isto, a raiz do repo nao
+# entra no sys.path e o import do modulo compartilhado falha.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from src.ingestion.tlc_source import (  # noqa: E402
+    BASE_URL,
+    MESES,
+    TAXI_TYPES,
+    caminho_destino,
+    montar_url,
+)
+
 RETRY_WAITS_S = [2, 4, 8]
 CHUNK_SIZE = 1024 * 1024
 TIMEOUT_S = 60
@@ -31,20 +45,20 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--base-url",
-        default="https://d37ci6vzurychx.cloudfront.net/trip-data",
+        default=BASE_URL,
         help="URL base do CDN da TLC (sem barra final)",
     )
     parser.add_argument("--year", default="2023", help="Ano dos arquivos (YYYY)")
     parser.add_argument(
         "--months",
         nargs="+",
-        default=["01", "02", "03", "04", "05"],
+        default=[mes.split("-")[1] for mes in MESES],
         help="Meses (MM) a baixar",
     )
     parser.add_argument(
         "--taxi-types",
         nargs="+",
-        default=["yellow", "green"],
+        default=list(TAXI_TYPES),
         help="Tipos de taxi (yellow, green)",
     )
     parser.add_argument(
@@ -142,9 +156,9 @@ def main() -> int:
     statuses: list[str] = []
     for taxi_type in args.taxi_types:
         for month in args.months:
-            filename = f"{taxi_type}_tripdata_{args.year}-{month}.parquet"
-            url = f"{args.base_url}/{filename}"
-            final_path = dest_root / taxi_type / args.year / filename
+            ano_mes = f"{args.year}-{month}"
+            url = montar_url(taxi_type, ano_mes, args.base_url)
+            final_path = Path(caminho_destino(args.dest, taxi_type, ano_mes))
             statuses.append(process_file(url, final_path, log_path))
     erros = statuses.count("erro")
     print(

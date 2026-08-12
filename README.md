@@ -161,7 +161,9 @@ assumida hoje.
 ```text
 ifood-case/
 ├── src/                          # código-fonte da solução
-│   ├── ingestion/download_tlc.py # download local idempotente dos 10 parquets
+│   ├── ingestion/tlc_source.py   # lógica pura da origem (URL, caminho, integridade)
+│   ├── ingestion/ingestao_landing.py # notebook: origem → Volume da landing
+│   ├── ingestion/download_tlc.py # download local idempotente (alternativa)
 │   ├── bronze/schema_canonico.py # schema canônico (Python puro, testável)
 │   ├── bronze/bronze_taxi_trips.py  # notebook Databricks da bronze
 │   ├── gold/build_gold.py        # regras de DQ e transformações da gold
@@ -214,12 +216,20 @@ O projeto segue um modelo de **execução manual documentada**: o código e os
 guias vivem no repo; as ações no workspace são executadas seguindo os guias de
 `docs/manual_steps/`, na ordem abaixo.
 
-1. **Setup do Databricks + landing** -siga
+1. **Setup do Databricks** -siga
    [docs/manual_steps/001-setup-databricks.md](docs/manual_steps/001-setup-databricks.md):
-   cria os schemas e o Volume, baixa os 10 parquets localmente
-   (`python src/ingestion/download_tlc.py` -idempotente, valida
-   `Content-Length` byte a byte) e faz o upload para
-   `/Volumes/workspace/nyc_taxi_landing/files/{yellow|green}/2023/`.
+   cria os schemas e o Volume da landing. O carregamento dos 10 parquets é
+   automático (item 1.1); o upload manual descrito nesse guia fica como
+   alternativa para workspace sem acesso à origem.
+   - **1.1 Ingestão** -
+     [src/ingestion/ingestao_landing.py](src/ingestion/ingestao_landing.py)
+     baixa os arquivos da origem pública direto para
+     `/Volumes/workspace/nyc_taxi_landing/files/{yellow|green}/2023/`,
+     validando `Content-Length` e pulando o que já está íntegro. Roda como
+     primeira task do job -veja
+     [docs/manual_steps/011-ingestao-automatizada.md](docs/manual_steps/011-ingestao-automatizada.md).
+     Fora do Databricks, o mesmo download é feito por
+     `python src/ingestion/download_tlc.py`.
 2. **Bronze** -siga
    [docs/manual_steps/002-executar-bronze.md](docs/manual_steps/002-executar-bronze.md):
    importe e execute o notebook
@@ -241,18 +251,22 @@ guias vivem no repo; as ações no workspace são executadas seguindo os guias d
 
 ### 🤖 Execução automatizada (Databricks Asset Bundles)
 
-Alternativa aos passos 2–4 acima (com a landing já carregada -passo 1): o
+Substitui os passos 1.1 a 4 acima: com os schemas e o Volume criados, o
 repositório traz um Asset Bundle ([databricks.yml](databricks.yml) +
 [resources/pipeline_job.yml](resources/pipeline_job.yml)) que sobe os
-notebooks e executa o pipeline completo com 3 comandos, em qualquer workspace:
+notebooks e reproduz a solução **do zero** — incluindo o download dos dados —
+com 3 comandos, em qualquer workspace:
 
 ```bash
 databricks bundle validate                 # confere a configuração
 databricks bundle deploy                   # sobe notebooks e cria o job
-databricks bundle run pipeline_nyc_taxi   # bronze → gold → views → análises
+databricks bundle run pipeline_nyc_taxi   # ingestão → bronze → gold → views → análises
 ```
 
-Pré-requisito: Databricks CLI autenticada com PAT no workspace de destino —
+As 6 tasks do job são sequenciais e idempotentes: reexecutar não rebaixa
+arquivo íntegro, não duplica linha e não altera nenhum número.
+
+Pré-requisito: Databricks CLI autenticada no workspace de destino —
 passo a passo em
 [docs/manual_steps/007-bundles.md](docs/manual_steps/007-bundles.md). Para
 outro workspace, basta apontar o `host` de um target em `databricks.yml`.
