@@ -10,15 +10,12 @@ bundle:
 include:
   - resources/*.yml
 
-# O deploy sincroniza a pasta do projeto para o workspace. Sem esta lista, tudo
-# que estiver no diretorio sobe junto, inclusive material de trabalho que nao
-# faz parte da solucao. Mantenha o envio restrito ao que o job precisa.
+# O deploy sincroniza a pasta do projeto para o workspace, respeitando o
+# .gitignore. Liste aqui apenas o que precisa ficar de fora e nao esta
+# ignorado pelo git.
 sync:
   exclude:
     - .venv/
-    - data/
-    - "*.PDF"
-    - "*.pdf"
 
 variables:
   catalog:

@@ -41,6 +41,19 @@ DESCRIBE VOLUME workspace.nyc_taxi_landing.files;
 > workspace não alcançar a origem, ou para carregar a landing sem executar o
 > job.
 
+### Opção 0 - um comando
+
+Faz tudo o que as opções abaixo fazem manualmente: garante schemas e Volume,
+baixa os parquets para a sua máquina, envia ao Volume apenas o que falta ou
+diverge em bytes, e confere os totais por frota.
+
+```powershell
+.\scripts\projeto.ps1 landing      # Windows
+./scripts/projeto.sh landing        # macOS/Linux
+```
+
+Se preferir entender cada etapa, siga as opções 1 ou 2.
+
 Os arquivos estão em `data/landing/{yellow|green}/2023/` na sua máquina
 (baixados pelo script `src/ingestion/download_tlc.py`). O destino final é:
 
