@@ -36,7 +36,7 @@ DESCRIBE VOLUME workspace.nyc_taxi_landing.files;
 
 > **O caminho padrão hoje é automático.** A primeira task do job baixa os
 > arquivos da origem pública direto para o Volume - veja
-> [011-ingestao-automatizada.md](011-ingestao-automatizada.md). Esta seção
+> [010-ingestao-automatizada.md](010-ingestao-automatizada.md). Esta seção
 > continua válida como alternativa para quando o egresso de internet do
 > workspace não alcançar a origem, ou para carregar a landing sem executar o
 > job.

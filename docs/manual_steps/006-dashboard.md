@@ -69,14 +69,3 @@ Se qualquer uma falhar, pare aqui e reexecute o guia 003 antes de continuar.
 
 Clique em **Publish** (canto superior direito) e confirme (publicação interna
 default, sem compartilhamento externo).
-
-## 8. Evidência
-
-Capture um screenshot mostrando: o título `NYC Taxi - Respostas do Case` e as
-2 visualizações renderizadas com eixos e legendas visíveis (as séries
-`frota_completa`/`yellow` na P2). O arquivo é arquivado em
-`docs/evidencias/006-dashboard.png`.
-
-> Nota: a UI dos dashboards AI/BI muda com frequência; se algum rótulo de
-> botão divergir, siga a intenção do passo (criar dataset a partir de SQL,
-> adicionar visualização, publicar).

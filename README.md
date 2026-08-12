@@ -229,7 +229,7 @@ guias vivem no repo; as ações no workspace são executadas seguindo os guias d
      `/Volumes/workspace/nyc_taxi_landing/files/{yellow|green}/2023/`,
      validando `Content-Length` e pulando o que já está íntegro. Roda como
      primeira task do job. Passo a passo em
-     [docs/manual_steps/011-ingestao-automatizada.md](docs/manual_steps/011-ingestao-automatizada.md).
+     [docs/manual_steps/010-ingestao-automatizada.md](docs/manual_steps/010-ingestao-automatizada.md).
      Fora do Databricks, o mesmo download é feito por
      `python src/ingestion/download_tlc.py`.
 2. **Bronze** - siga
