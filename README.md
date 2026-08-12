@@ -10,7 +10,7 @@
 ![PySpark](https://img.shields.io/badge/PySpark-4.0-E25A1C?logo=apachespark&logoColor=white)
 ![Delta Lake](https://img.shields.io/badge/Delta%20Lake-Unity%20Catalog-00ADD4)
 ![Databricks](https://img.shields.io/badge/Databricks-Free%20Edition-FF3621?logo=databricks&logoColor=white)
-![Testes](https://img.shields.io/badge/testes-17%20aprovados-success)
+![Testes](https://img.shields.io/badge/testes-44-success)
 ![Code style](https://img.shields.io/badge/code%20style-black-000000)
 ![Lint](https://img.shields.io/badge/lint-ruff-D7FF64)
 
@@ -47,7 +47,7 @@ calculadas de forma independente em SQL e PySpark, com paridade verificada.
 
 <div align="center">
 
-| 🚕 16.526.016 corridas | ✅ 94,71% aproveitamento | 🔍 reconciliação exata (dif. 0) | 🧪 17 testes | ⚙️ pipeline em 1 comando |
+| 🚕 16.526.016 corridas | ✅ 94,71% aproveitamento | 🔍 reconciliação exata (dif. 0) | 🧪 44 testes | ⚙️ pipeline em 1 comando |
 |:---:|:---:|:---:|:---:|:---:|
 
 </div>
@@ -75,7 +75,7 @@ flowchart LR
     subgraph Consumo
         AN["analysis/ (EDA + P1 + P2,<br/>SQL × PySpark com paridade)"]
     end
-    TLC -->|download local +<br/>upload manual| VOL
+    TLC -->|download in-notebook<br/>1ª task do job| VOL
     VOL -->|leitura mês a mês,<br/>casts explícitos| BRZ
     BRZ -->|4 regras DQ<br/>R1→R4| GLD
     BRZ -->|linhas reprovadas<br/>com o motivo| REJ
@@ -175,6 +175,7 @@ ifood-case/
 │   ├── 02_resposta_p1_media_total_amount_mes.py
 │   ├── 03_resposta_p2_media_passageiros_hora_maio.py
 │   └── sql/                      # consultas prontas para o SQL Warehouse
+├── docs/DATA_CONTRACT.md         # contrato da camada de consumo (schema, garantias, mudanças)
 ├── docs/ESCALABILIDADE.md        # gatilhos de evolução da arquitetura em produção
 ├── docs/manual_steps/            # guias passo a passo (modelo de execução manual)
 ├── scripts/                      # utilitários de setup/execução (.ps1 e .sh)
@@ -261,10 +262,10 @@ com 3 comandos, em qualquer workspace:
 ```bash
 databricks bundle validate                 # confere a configuração
 databricks bundle deploy                   # sobe notebooks e cria o job
-databricks bundle run pipeline_nyc_taxi   # ingestão → bronze → gold → views → análises
+databricks bundle run pipeline_nyc_taxi   # ingestão → bronze → gold → views → análises → governança
 ```
 
-As 6 tasks do job são sequenciais e idempotentes: reexecutar não rebaixa
+As 7 tasks do job são sequenciais e idempotentes: reexecutar não rebaixa
 arquivo íntegro, não duplica linha e não altera nenhum número.
 
 Pré-requisito: Databricks CLI autenticada no workspace de destino —
@@ -349,15 +350,37 @@ da gold não altera a média da P2 -altera a contagem de corridas e a P1. O
 corte de corridas com **zero** passageiros (registro inválido) evita puxar a
 ocupação para baixo.
 
+## Governança e contrato de dados
+
+O catálogo se explica sozinho: **todas** as 53 colunas das camadas conformada e
+de consumo têm comentário, incluindo as das views, e as tabelas carregam tags
+de classificação (`camada`, `dominio`, `fonte`, `contem_pii`, `projeto`). Quem
+abre o Catalog Explorer entende o dado sem precisar deste README.
+
+Os metadados são **código versionado**, não cliques na interface:
+[src/governance/catalog_metadata.sql](src/governance/catalog_metadata.sql) é
+aplicado por [src/governance/aplicar_metadados.py](src/governance/aplicar_metadados.py)
+como última task do job, de forma idempotente. Os comentários das views moram
+na própria definição em
+[create_views.sql](src/gold/sql/create_views.sql), já que `CREATE OR REPLACE`
+as recria a cada execução e sobrescreveria comentários aplicados por fora.
+
+O [contrato de dados](docs/DATA_CONTRACT.md) formaliza o que a camada de
+consumo garante (grão, janela, schema, as 4 regras de qualidade com contagem),
+o que ela **não** garante (sem deduplicação, outliers preservados,
+`payment_type = 0` mantido) e o que caracteriza uma mudança quebrando
+compatibilidade. Passo a passo em
+[docs/manual_steps/009-governanca.md](docs/manual_steps/009-governanca.md).
+
 ## Justificativas técnicas
 
 | Critério do case (PDF) | Evidência concreta neste repo |
 |---|---|
-| 🧹 Qualidade e organização do código | Módulos Python puros testáveis (`src/bronze/schema_canonico.py`, `src/gold/build_gold.py`) espelhados nos notebooks com teste de consistência; `ruff` + `black` + `pytest` configurados em `pyproject.toml`; 17 testes; convenção de commits e uma branch por entrega, integradas com merges `--no-ff` |
+| 🧹 Qualidade e organização do código | Módulos Python puros testáveis (`src/bronze/schema_canonico.py`, `src/gold/build_gold.py`) espelhados nos notebooks com teste de consistência; `ruff` + `black` + `pytest` configurados em `pyproject.toml`; 44 testes; convenção de commits e uma branch por entrega, integradas com merges `--no-ff` |
 | 🔬 Análise exploratória | `analysis/01_eda_nyc_taxi.py`: volumetria validada contra a origem, 6 hipóteses de anomalia confirmadas/refutadas com contagem (nulls, datas de 2001–2008, estornos de até −982,95, `payment_type=0` correlacionado 1:1 com nulls, `RatecodeID=99`, outlier de 342 mil milhas) e impacto da limpeza quantificado |
 | ⚖️ Justificativa das escolhas técnicas | Decisões documentadas neste README e nos docstrings/células markdown dos notebooks -ex.: leitura mês a mês por causa do **schema drift real** entre 2023-01 e 2023-02..05 (tipos e grafia `airport_fee`/`Airport_fee`); TIMESTAMP_NTZ sem conversão de fuso; limpeza só na gold com contagem por regra |
 | 💡 Criatividade | P2 respondida em dois escopos + dupla leitura ocupação × demanda; `dq_metrics` com atribuição por primeira regra violada e reconciliação exata, com quarentena `taxi_trips_rejected` tornando cada linha removida auditável; paridade SQL × PySpark como verificação cruzada; benchmarks externos de sanidade para a P1; pipeline executável com 1 comando via Asset Bundle |
-| 🗣️ Clareza na comunicação | Este README (arquitetura, execução, resultados com interpretação); guias passo a passo em `docs/manual_steps/`; dashboard com as respostas; notebooks com células markdown explicando cada etapa e tabelas finais de evidência |
+| 🗣️ Clareza na comunicação | Este README (arquitetura, execução, resultados com interpretação); contrato de dados e comentários em 100% das colunas do catálogo; guias passo a passo em `docs/manual_steps/`; dashboard com as respostas; notebooks com células markdown explicando cada etapa e tabelas finais de evidência |
 
 ## Limitações e próximos passos
 
@@ -365,7 +388,8 @@ ocupação para baixo.
 
 - Databricks **Free Edition**: serverless-only, DBFS root desabilitado (por
   isso Volume UC na landing), egresso de internet dos notebooks restrito a
-  allowlist não publicada (por isso o download é local + upload manual), 1 SQL
+  allowlist não publicada, mas o CDN da origem está acessível -confirmado no
+  workspace e usado pela task de ingestão), 1 SQL
   Warehouse 2X-Small.
 - Orquestração via job único do Asset Bundle, **sem agendamento nem
   monitoramento de produção** (adequado ao case).
