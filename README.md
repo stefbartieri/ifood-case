@@ -133,6 +133,14 @@ fatores reforçam a escolha: o volume é pequeno (16,5M linhas, <1 GB, build em
 minutos), então materializar um estágio extra não se paga; e há **um único
 consumidor** -uma gold servindo duas perguntas.
 
+Vale separar arquitetura de rótulo. A camada de limpeza **existe** e é uma
+etapa própria, com regras versionadas e contagem por regra -aqui ela se chama
+gold. É comum ver exatamente este mesmo desenho (landing bruta → camada
+conformada → camada limpa consumida por SQL) com a camada final rotulada como
+silver; a diferença nesse caso é de nomenclatura, não de pipeline. A escolha
+do nome `gold` segue a semântica do enunciado: é dela que sai a **camada de
+consumo com as 5 colunas obrigatórias**.
+
 **Quando a silver entraria:** com FHV/FHVHV no escopo, dimensões
 (`taxi_zone_lookup`) para enriquecer as corridas, ou várias marts (financeira,
 operacional, geográfica) sobre a mesma base. Aí a limpeza sairia da gold e
@@ -327,9 +335,22 @@ ocupação para baixo.
   monitoramento de produção** (adequado ao case).
 - **FHV/FHVHV fora de escopo** (sem `passenger_count`).
 - Tabelas pequenas (<1 GB): sem particionamento físico na gold nem OPTIMIZE.
+- **Linhas removidas pela limpeza existem só como contagem** em `dq_metrics`:
+  a reconciliação fecha no agregado, mas não há auditoria linha a linha das
+  ~875 mil corridas descartadas.
+- Gold é uma **tabela flat** de 8 colunas -atende ao enunciado, mas não é um
+  modelo dimensional.
 
 **Próximos passos naturais:**
 
+- **Quarentena em vez de descarte**: rotear as linhas reprovadas para
+  `taxi_trips_rejected` com uma coluna `_reject_reason` (a regra já é
+  identificada em passada única por `classificar_dq`), trocando a auditoria
+  agregada por auditoria linha a linha sem perder a reconciliação.
+- **Modelagem dimensional da gold**: fato no grão da corrida + dimensão de
+  tempo e de zona (`taxi_zone_lookup`, já mapeada). É nesse cenário que a
+  camada silver passa a se justificar -a limpeza sai da gold e vira estágio
+  compartilhado entre as marts.
 - CI (GitHub Actions) rodando lint, testes e `bundle validate` a cada push.
 - Agendamento e alertas no job (Lakeflow Declarative Pipelines com
   expectations substituiria as regras manuais de DQ).
