@@ -66,6 +66,31 @@ def caminho_destino(raiz: str, taxi_type: str, ano_mes: str) -> str:
     return f"{raiz.rstrip('/')}/{taxi_type}/{ano}/{nome_arquivo(taxi_type, ano_mes)}"
 
 
+def landing_integra(
+    tamanhos_por_frota: dict[str, list[int | None]], escopo_completo: bool
+) -> bool:
+    """True quando a landing ja esta completa e com os bytes esperados.
+
+    Criterio deliberadamente conservador: so vale para o escopo completo do
+    case (todos os meses de TOTAIS_ESPERADOS_BYTES), porque o invariante
+    conhecido e a soma por frota - em escopo parcial nao da para afirmar
+    integridade sem consultar a origem.
+
+    Serve para decidir se a ingestao precisa tocar a rede: com a landing
+    integra, nem o teste de fumaca nem os HEADs sao necessarios, o que mantem
+    o pipeline reproduzivel em workspace sem egresso para o CDN da TLC.
+    """
+    if not escopo_completo or not tamanhos_por_frota:
+        return False
+    for frota, tamanhos in tamanhos_por_frota.items():
+        esperado = TOTAIS_ESPERADOS_BYTES.get(frota)
+        if esperado is None or not tamanhos or any(t is None for t in tamanhos):
+            return False
+        if sum(tamanhos) != esperado:  # type: ignore[arg-type]
+            return False
+    return True
+
+
 def precisa_baixar(tamanho_local: int | None, content_length: int | None) -> bool:
     """Decide entre baixar e pular.
 
@@ -84,9 +109,7 @@ def precisa_baixar(tamanho_local: int | None, content_length: int | None) -> boo
 
 # COMMAND ----------
 
-# Teste de fumaca: o egresso de internet do workspace e restrito a uma
-# allowlist nao publicada. Falhar aqui, com mensagem clara, e muito melhor que
-# estourar um socket no meio do terceiro arquivo.
+# Imports e helpers. Nenhuma chamada de rede acontece nesta celula.
 
 import os
 import shutil
@@ -97,24 +120,6 @@ import urllib.request
 
 RETRY_WAITS_S = [2, 4, 8]
 TIMEOUT_S = 60
-
-_URL_TESTE = montar_url("green", MESES[0])
-
-try:
-    print("DNS:", socket.gethostbyname("d37ci6vzurychx.cloudfront.net"))
-    _req = urllib.request.Request(_URL_TESTE, method="HEAD")
-    with urllib.request.urlopen(_req, timeout=TIMEOUT_S) as _resp:
-        print("HEAD OK, Content-Length:", _resp.headers.get("Content-Length"))
-except Exception as exc:
-    raise RuntimeError(
-        "Sem acesso a origem da TLC a partir deste workspace "
-        f"({type(exc).__name__}: {exc}). O egresso de internet e restrito a uma "
-        "allowlist. Use o caminho alternativo: baixe com "
-        "src/ingestion/download_tlc.py na sua maquina e suba os arquivos para o "
-        "Volume conforme docs/manual_steps/001-setup-databricks.md."
-    ) from exc
-
-# COMMAND ----------
 
 
 def content_length_da_origem(url: str) -> int | None:
@@ -154,11 +159,54 @@ def baixar_para_o_volume(url: str, destino: str) -> int:
 
 # COMMAND ----------
 
+# Estado da landing ANTES de qualquer acesso a rede. Com o escopo completo ja
+# presente e os totais por frota batendo, a ingestao nao precisa da origem -
+# isso mantem o pipeline reproduzivel em workspace sem egresso para o CDN.
+
+TAMANHOS_ATUAIS = {
+    taxi_type: [
+        tamanho_no_volume(caminho_destino(VOLUME_ROOT, taxi_type, ano_mes))
+        for ano_mes in MESES_PARAM
+    ]
+    for taxi_type in TAXI_TYPES_PARAM
+}
+LANDING_PRONTA = landing_integra(TAMANHOS_ATUAIS, set(MESES_PARAM) == set(MESES))
+
+print("Landing integra:", LANDING_PRONTA)
+
+# COMMAND ----------
+
+# Teste de fumaca: o egresso de internet do workspace e restrito a uma
+# allowlist nao publicada. Falhar aqui, com mensagem clara, e muito melhor que
+# estourar um socket no meio do terceiro arquivo. So roda quando ha o que
+# baixar - landing integra dispensa a rede.
+
+if LANDING_PRONTA:
+    print("Landing ja completa: teste de fumaca e download dispensados.")
+else:
+    try:
+        print("DNS:", socket.gethostbyname("d37ci6vzurychx.cloudfront.net"))
+        _req = urllib.request.Request(montar_url("green", MESES[0]), method="HEAD")
+        with urllib.request.urlopen(_req, timeout=TIMEOUT_S) as _resp:
+            print("HEAD OK, Content-Length:", _resp.headers.get("Content-Length"))
+    except Exception as exc:
+        raise RuntimeError(
+            "Sem acesso a origem da TLC a partir deste workspace "
+            f"({type(exc).__name__}: {exc}) e a landing nao esta completa. O "
+            "egresso de internet e restrito a uma allowlist. Use o caminho "
+            "alternativo: baixe com src/ingestion/download_tlc.py na sua maquina "
+            "e suba os arquivos para o Volume conforme "
+            "docs/manual_steps/001-setup-databricks.md."
+        ) from exc
+
+# COMMAND ----------
+
 # Carga: um arquivo por vez, com retry. Pula o que ja esta integro.
 
 resumo = []
+A_CARREGAR = [] if LANDING_PRONTA else TAXI_TYPES_PARAM
 
-for taxi_type in TAXI_TYPES_PARAM:
+for taxi_type in A_CARREGAR:
     for ano_mes in MESES_PARAM:
         url = montar_url(taxi_type, ano_mes)
         destino = caminho_destino(VOLUME_ROOT, taxi_type, ano_mes)

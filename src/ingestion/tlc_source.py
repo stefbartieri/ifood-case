@@ -43,6 +43,31 @@ def caminho_destino(raiz: str, taxi_type: str, ano_mes: str) -> str:
     return f"{raiz.rstrip('/')}/{taxi_type}/{ano}/{nome_arquivo(taxi_type, ano_mes)}"
 
 
+def landing_integra(
+    tamanhos_por_frota: dict[str, list[int | None]], escopo_completo: bool
+) -> bool:
+    """True quando a landing ja esta completa e com os bytes esperados.
+
+    Criterio deliberadamente conservador: so vale para o escopo completo do
+    case (todos os meses de TOTAIS_ESPERADOS_BYTES), porque o invariante
+    conhecido e a soma por frota - em escopo parcial nao da para afirmar
+    integridade sem consultar a origem.
+
+    Serve para decidir se a ingestao precisa tocar a rede: com a landing
+    integra, nem o teste de fumaca nem os HEADs sao necessarios, o que mantem
+    o pipeline reproduzivel em workspace sem egresso para o CDN da TLC.
+    """
+    if not escopo_completo or not tamanhos_por_frota:
+        return False
+    for frota, tamanhos in tamanhos_por_frota.items():
+        esperado = TOTAIS_ESPERADOS_BYTES.get(frota)
+        if esperado is None or not tamanhos or any(t is None for t in tamanhos):
+            return False
+        if sum(tamanhos) != esperado:  # type: ignore[arg-type]
+            return False
+    return True
+
+
 def precisa_baixar(tamanho_local: int | None, content_length: int | None) -> bool:
     """Decide entre baixar e pular.
 

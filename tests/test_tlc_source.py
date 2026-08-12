@@ -9,10 +9,17 @@ from src.ingestion.tlc_source import (
     TAXI_TYPES,
     TOTAIS_ESPERADOS_BYTES,
     caminho_destino,
+    landing_integra,
     montar_url,
     nome_arquivo,
     precisa_baixar,
 )
+
+# Bytes reais de cada arquivo na origem: a soma por frota e o invariante.
+TAMANHOS_OK = {
+    "yellow": [47673370, 47748012, 56127762, 54222699, 58654627],
+    "green": [1427002, 1533740, 1730999, 1570467, 1673841],
+}
 
 
 def test_escopo_do_case() -> None:
@@ -76,6 +83,34 @@ def test_totais_esperados_por_frota() -> None:
     assert set(TOTAIS_ESPERADOS_BYTES) == set(TAXI_TYPES)
 
 
+def test_landing_integra_reconhece_a_carga_completa() -> None:
+    """Escopo completo, arquivos presentes e totais batendo: dispensa a rede."""
+    assert landing_integra(TAMANHOS_OK, True) is True
+    # Os totais do fixture sao exatamente os invariantes por frota.
+    for frota, tamanhos in TAMANHOS_OK.items():
+        assert sum(tamanhos) == TOTAIS_ESPERADOS_BYTES[frota]
+
+
+@pytest.mark.parametrize(
+    ("tamanhos", "escopo_completo"),
+    [
+        ({}, True),  # sem frota nenhuma: nao da para afirmar nada
+        ({"yellow": TAMANHOS_OK["yellow"]}, False),  # escopo parcial
+        # Arquivo ausente na landing.
+        ({"green": [1427002, 1533740, 1730999, 1570467, None]}, True),
+        # Download parcial: total diverge do invariante.
+        ({"green": [1427002, 1533740, 1730999, 1570467, 1]}, True),
+        # Frota fora do invariante conhecido.
+        ({"fhv": [1, 2, 3, 4, 5]}, True),
+        ({"green": []}, True),  # frota sem arquivo algum
+    ],
+)
+def test_landing_integra_recusa_o_que_nao_da_para_afirmar(
+    tamanhos: dict[str, list[int | None]], escopo_completo: bool
+) -> None:
+    assert landing_integra(tamanhos, escopo_completo) is False
+
+
 def test_notebook_espelha_o_modulo() -> None:
     """O bloco INICIO/FIM do notebook nao pode divergir do modulo."""
     notebook = (
@@ -107,3 +142,5 @@ def test_notebook_espelha_o_modulo() -> None:
             )
     assert espaco["precisa_baixar"](None, 10) is True
     assert espaco["precisa_baixar"](10, 10) is False
+    assert espaco["landing_integra"](TAMANHOS_OK, True) is True
+    assert espaco["landing_integra"](TAMANHOS_OK, False) is False
