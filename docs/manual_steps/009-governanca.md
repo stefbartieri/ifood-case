@@ -92,8 +92,9 @@ WHERE schema_name IN ('nyc_taxi_bronze', 'nyc_taxi_gold');
 Resultado esperado: 4 tabelas × 5 tags = 20 linhas, com as chaves `camada`,
 `dominio`, `fonte`, `contem_pii` e `projeto`.
 
-Se a consulta falhar ou vier vazia e a task tiver avisado sobre tags, é a
-indisponibilidade prevista — reporte assim mesmo.
+Se a consulta falhar ou vier vazia e a task tiver avisado sobre tags, trata-se
+da indisponibilidade prevista do recurso nesta edição da plataforma -- registre
+a limitação em vez de tratar o item como pendente.
 
 ---
 
@@ -128,7 +129,7 @@ com o mesmo texto, então reexecutar não acumula nem duplica nada.
 
 ---
 
-## Evidências a reportar
+## Checklist de validação
 
 1. Evidência das 7 tasks concluídas (e o aviso de tags, se houver).
 2. Resultado da consulta de cobertura (deve ser 0 linhas).

@@ -122,7 +122,7 @@ subir os arquivos, e rode o job a partir da task `bronze`.
 
 ---
 
-## Evidências a reportar
+## Checklist de validação
 
 1. Saída do teste de fumaça (DNS + `Content-Length`).
 2. Log da task `ingestao` mostrando o arquivo apagado sendo rebaixado.

@@ -161,7 +161,7 @@ duplica nada.
 
 ---
 
-## Evidências a reportar
+## Checklist de validação
 
 1. Saída do `DESCRIBE TABLE` (passo 2).
 2. Resultado da contagem por motivo e frota (passo 3).
