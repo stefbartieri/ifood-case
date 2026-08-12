@@ -6,7 +6,7 @@
 resources:
   jobs:
     pipeline_nyc_taxi:
-      name: "[ifood-case] pipeline nyc taxi (ingestao -> bronze -> gold -> views -> analises)"
+      name: "[ifood-case] pipeline nyc taxi (ingestao -> bronze -> gold -> views -> analises -> governanca)"
       tasks:
         - task_key: ingestao
           notebook_task:
