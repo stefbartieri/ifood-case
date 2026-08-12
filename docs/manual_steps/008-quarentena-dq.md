@@ -74,39 +74,31 @@ linhas.
 
 ```sql
 WITH g AS (
-  SELECT taxi_type, COUNT(*) AS n FROM workspace.nyc_taxi_gold.taxi_trips
-  GROUP BY taxi_type
-),
-r AS (
-  SELECT taxi_type, COUNT(*) AS n
-  FROM workspace.nyc_taxi_gold.taxi_trips_rejected GROUP BY taxi_type
-),
-b AS (
-  SELECT taxi_type, valor AS n FROM workspace.nyc_taxi_gold.dq_metrics
-  WHERE metrica = 'linhas_bronze'
+  SELECT COALESCE(taxi_type, 'total') AS taxi_type, COUNT(*) AS gold
+  FROM workspace.nyc_taxi_gold.taxi_trips GROUP BY ROLLUP(taxi_type)
+), r AS (
+  SELECT COALESCE(taxi_type, 'total') AS taxi_type, COUNT(*) AS quarentena
+  FROM workspace.nyc_taxi_gold.taxi_trips_rejected GROUP BY ROLLUP(taxi_type)
+), b AS (
+  SELECT taxi_type, valor AS bronze
+  FROM workspace.nyc_taxi_gold.dq_metrics WHERE metrica = 'linhas_bronze'
 )
-SELECT b.taxi_type,
-       b.n                                   AS bronze,
-       COALESCE(g.n, 0)                      AS gold,
-       COALESCE(r.n, 0)                      AS quarentena,
-       b.n - COALESCE(g.n, 0) - COALESCE(r.n, 0) AS diferenca
-FROM b LEFT JOIN g ON g.taxi_type = b.taxi_type
-       LEFT JOIN r ON r.taxi_type = b.taxi_type
-UNION ALL
-SELECT 'total',
-       (SELECT valor FROM workspace.nyc_taxi_gold.dq_metrics
-        WHERE metrica = 'linhas_bronze' AND taxi_type = 'total'),
-       (SELECT COUNT(*) FROM workspace.nyc_taxi_gold.taxi_trips),
-       (SELECT COUNT(*) FROM workspace.nyc_taxi_gold.taxi_trips_rejected),
-       (SELECT valor FROM workspace.nyc_taxi_gold.dq_metrics
-        WHERE metrica = 'linhas_bronze' AND taxi_type = 'total')
-       - (SELECT COUNT(*) FROM workspace.nyc_taxi_gold.taxi_trips)
-       - (SELECT COUNT(*) FROM workspace.nyc_taxi_gold.taxi_trips_rejected)
-ORDER BY 1;
+SELECT b.taxi_type, b.bronze, g.gold, r.quarentena,
+       b.bronze - g.gold - r.quarentena AS diferenca
+FROM b JOIN g USING (taxi_type) JOIN r USING (taxi_type)
+ORDER BY b.taxi_type;
 ```
 
-Esperado: bronze **16.526.016** = gold **15.651.177** + quarentena
-**874.839**; yellow **16.186.386** e green **339.630**, com `diferenca` = 0.
+O `ROLLUP` gera a linha agregada junto das linhas por frota, o que permite
+comparar os três escopos numa consulta só.
+
+Resultado obtido na execução real:
+
+| taxi_type | bronze | gold | quarentena | diferenca |
+|---|---|---|---|---|
+| green | 339.630 | 313.040 | 26.590 | **0** |
+| total | 16.526.016 | 15.651.177 | 874.839 | **0** |
+| yellow | 16.186.386 | 15.338.137 | 848.249 | **0** |
 
 ---
 
