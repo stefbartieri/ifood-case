@@ -50,7 +50,8 @@ qualidade() {
 
 # Host do target default, so para montar mensagens de erro acionaveis.
 host_do_bundle() {
-    grep -m1 -E '^[[:space:]]+host:' databricks.yml | awk '{print $2}'         || echo "https://<workspace>.cloud.databricks.com"
+    grep -m1 -E '^[[:space:]]+host:' databricks.yml | awk '{print $2}' \
+        || echo "https://<workspace>.cloud.databricks.com"
 }
 
 assert_databricks_pronto() {
@@ -58,21 +59,28 @@ assert_databricks_pronto() {
         echo "Databricks CLI nao encontrada (binario standalone, nao e pacote pip)." >&2
         exit 1
     }
-    # Autenticacao aceita: OAuth da CLI (databricks auth login), perfil em
-    # ~/.databrickscfg, PAT via env ou service principal via env.
-    if [ -f "$HOME/.databricks/token-cache.json" ] || [ -f "$HOME/.databrickscfg" ]         || [ -n "${DATABRICKS_TOKEN:-}" ]         || { [ -n "${DATABRICKS_CLIENT_ID:-}" ] && [ -n "${DATABRICKS_CLIENT_SECRET:-}" ]; }; then
+    # "auth describe" resolve o host pelo target default do bundle, igual ao
+    # deploy, e vale para qualquer metodo (perfil, PAT ou service principal).
+    # Ter ~/.databrickscfg nao basta: o perfil pode ser de OUTRO workspace.
+    # O comando sai com codigo 0 mesmo sem credencial - quem decide e o "status".
+    local descricao
+    descricao="$(databricks auth describe -o json 2> /dev/null || true)"
+    if printf '%s' "$descricao" | grep -q '"status"[[:space:]]*:[[:space:]]*"success"'; then
         return 0
     fi
     local destino
     destino="$(host_do_bundle)"
     cat >&2 <<EOF
-Nenhuma credencial do Databricks encontrada. Escolha uma das opcoes:
+Sem credencial valida para o workspace do bundle ($destino). Escolha uma das opcoes:
 
   1) OAuth (recomendado, o host ja vem do databricks.yml):
      databricks auth login --host $destino
 
   2) PAT (token pessoal):
      export DATABRICKS_HOST='$destino'; export DATABRICKS_TOKEN='dapi...'
+
+Se voce ja esta logado em outro workspace, o perfil existente nao serve: a
+credencial precisa ser do host acima (ou ajuste o host em databricks.yml).
 EOF
     exit 1
 }
@@ -81,7 +89,10 @@ EOF
 arquivos_no_volume() {
     local total=0 n
     for frota in "${FROTAS[@]}"; do
-        n=$(databricks fs ls "$VOLUME_RAIZ/$frota/2023" 2> /dev/null | wc -l | tr -d ' ')
+        # A pasta pode nem existir (Volume recem-criado). Sem o "|| true" o
+        # pipefail derrubaria o script inteiro via set -e: erro conta zero.
+        n=$(databricks fs ls "$VOLUME_RAIZ/$frota/2023" --output json 2> /dev/null \
+            | grep -o '"name"' | wc -l | tr -d ' ' || true)
         total=$((total + n))
     done
     echo "$total"
@@ -104,6 +115,10 @@ landing() {
     echo "[3/4] Enviando o que falta para o Volume..."
     local enviados=0 listagem tamanho_remoto tamanho_local arquivo
     for frota in "${FROTAS[@]}"; do
+        # "fs cp" nao cria diretorios intermediarios: o bundle cria o Volume,
+        # mas {frota}/2023 so passa a existir aqui. "mkdir" cria a arvore
+        # inteira e e idempotente, entao roda a cada execucao sem efeito extra.
+        databricks fs mkdir "$VOLUME_RAIZ/$frota/2023"
         listagem="$(databricks fs ls "$VOLUME_RAIZ/$frota/2023" --output json 2> /dev/null || echo '[]')"
         for mes in "${MESES[@]}"; do
             arquivo="${frota}_tripdata_2023-${mes}.parquet"
@@ -121,7 +136,8 @@ print(next((i['size'] for i in itens if i['name'] == '$arquivo'), ''))
                 continue
             fi
             echo "  [upload] $arquivo ($tamanho_local bytes)"
-            databricks fs cp "data/landing/$frota/2023/$arquivo"                 "$VOLUME_RAIZ/$frota/2023/$arquivo" --overwrite
+            databricks fs cp "data/landing/$frota/2023/$arquivo" \
+                "$VOLUME_RAIZ/$frota/2023/$arquivo" --overwrite
             enviados=$((enviados + 1))
         done
     done

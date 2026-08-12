@@ -92,10 +92,15 @@ function Invoke-Landing {
     Write-Host "`n[3/4] Enviando o que falta para o Volume..."
     $enviados = 0
     foreach ($frota in $Frotas) {
+        # "fs cp" nao cria diretorios intermediarios: o bundle cria o Volume,
+        # mas {frota}/2023 so passa a existir aqui. "mkdir" cria a arvore
+        # inteira e e idempotente, entao roda a cada execucao sem efeito extra.
+        databricks fs mkdir "$VolumeRaiz/$frota/2023"
+        if ($LASTEXITCODE -ne 0) { throw "Falha ao criar $VolumeRaiz/$frota/2023 no Volume." }
         $noVolume = Get-LandingNoVolume $frota
         foreach ($mes in $Meses) {
             $arquivo = "${frota}_tripdata_2023-$mes.parquet"
-            $local = Join-Path $raiz "data\landing\$frota3\$arquivo"
+            $local = Join-Path $raiz "data/landing/$frota/2023/$arquivo"
             $bytesLocais = (Get-Item $local).Length
             if ($noVolume[$arquivo] -eq $bytesLocais) {
                 Write-Host "  [ok]     $arquivo ja no Volume ($bytesLocais bytes)"
@@ -157,22 +162,32 @@ function Assert-DatabricksPronto {
     if (-not (Get-Command databricks -ErrorAction SilentlyContinue)) {
         throw "Databricks CLI nao encontrada (instale: winget install Databricks.DatabricksCLI)."
     }
-    # Autenticacao aceita: OAuth da CLI (databricks auth login), perfil em
-    # ~/.databrickscfg, PAT via env ou service principal via env.
-    $temOAuth = Test-Path (Join-Path $env:USERPROFILE ".databricks	oken-cache.json")
-    $temPerfil = Test-Path (Join-Path $env:USERPROFILE ".databrickscfg")
-    $temPat = [bool]$env:DATABRICKS_TOKEN
-    $temSp = $env:DATABRICKS_CLIENT_ID -and $env:DATABRICKS_CLIENT_SECRET
-    if ($temOAuth -or $temPerfil -or $temPat -or $temSp) { return }
-    $destino = Get-HostDoBundle
+    # "auth describe" resolve o host pelo target default do bundle, igual ao
+    # deploy, e vale para qualquer metodo (perfil, PAT ou service principal).
+    # Ter ~/.databrickscfg nao basta: o perfil pode ser de OUTRO workspace.
+    # O comando sai com codigo 0 mesmo sem credencial - quem decide e o "status".
+    $anterior = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try { $saida = & databricks auth describe -o json 2>$null } catch { $saida = $null }
+    $ErrorActionPreference = $anterior
+    $descricao = $null
+    if ($saida) {
+        try { $descricao = ($saida -join "`n") | ConvertFrom-Json } catch { $descricao = $null }
+    }
+    if ($descricao -and $descricao.status -eq "success") { return }
+
+    $destino = if ($descricao -and $descricao.details.host) { $descricao.details.host } else { Get-HostDoBundle }
     throw @"
-Nenhuma credencial do Databricks encontrada. Escolha uma das opcoes:
+Sem credencial valida para o workspace do bundle ($destino). Escolha uma das opcoes:
 
   1) OAuth (recomendado, o host ja vem do databricks.yml):
      databricks auth login --host $destino
 
   2) PAT (token pessoal):
      `$env:DATABRICKS_HOST='$destino'; `$env:DATABRICKS_TOKEN='dapi...'
+
+Se voce ja esta logado em outro workspace, o perfil existente nao serve: a
+credencial precisa ser do host acima (ou ajuste o host em databricks.yml).
 "@
 }
 

@@ -10,6 +10,7 @@
 ![PySpark](https://img.shields.io/badge/PySpark-4.0-E25A1C?logo=apachespark&logoColor=white)
 ![Delta Lake](https://img.shields.io/badge/Delta%20Lake-Unity%20Catalog-00ADD4)
 ![Databricks](https://img.shields.io/badge/Databricks-Free%20Edition-FF3621?logo=databricks&logoColor=white)
+![Databricks CLI](https://img.shields.io/badge/Databricks%20CLI-v1.11.0-FF3621?logo=databricks&logoColor=white)
 ![Testes](https://img.shields.io/badge/testes-51-success)
 ![Code style](https://img.shields.io/badge/code%20style-black-000000)
 ![Lint](https://img.shields.io/badge/lint-ruff-D7FF64)
@@ -193,8 +194,19 @@ ifood-case/
 - Conta **Databricks Free Edition** (gratuita; serverless-only, Unity Catalog)
 - **Python 3.12 ou 3.13** para reprodução local (o pyspark 4.x **não suporta
   Python 3.14**; testes com Spark local exigem também Java 17+)
-- **git** e, opcionalmente, a **Databricks CLI** (binário standalone - não é
-  pacote pip) para upload e deploy via terminal
+- **git**
+- **Databricks CLI v1.11.0** (versão usada e validada neste projeto) - binário
+  standalone, **não é pacote pip**. Necessária para as ações `landing` e
+  `deploy` dos scripts e para o Asset Bundle; dispensável se você executar tudo
+  pela UI do workspace, seguindo os guias de `docs/manual_steps/`.
+
+  ```powershell
+  winget install Databricks.DatabricksCLI   # Windows
+  brew install databricks/tap/databricks    # macOS
+  databricks version                        # confira: Databricks CLI v1.11.0
+  ```
+
+  (alternativa: binários em https://github.com/databricks/cli/releases)
 - Dependências locais: `pip install -r requirements.txt`
 
 ## Como executar
@@ -280,8 +292,31 @@ arquivo íntegro, não duplica linha e não altera nenhum número.
 
 Pré-requisito: Databricks CLI autenticada no workspace de destino -
 passo a passo em
-[docs/manual_steps/007-bundles.md](docs/manual_steps/007-bundles.md). Para
-outro workspace, basta apontar o `host` de um target em `databricks.yml`.
+[docs/manual_steps/007-bundles.md](docs/manual_steps/007-bundles.md).
+
+#### Rodar em outro workspace
+
+São dois passos, e o segundo é obrigatório: **estar logado em algum workspace
+não basta**, a credencial precisa ser do host que o bundle usa. Com o host
+apontando para um workspace e o perfil para outro, o deploy falha com
+`cannot configure default credentials`.
+
+```powershell
+# 1. aponte o host do target em databricks.yml (ou crie um target novo e use -t <nome>)
+#      targets.dev.workspace.host: https://<id-do-workspace>.cloud.databricks.com
+
+# 2. autentique NAQUELE host
+databricks auth login --host https://<id-do-workspace>.cloud.databricks.com
+
+# 3. confira: "status" deve ser "success" e o host vir do bundle
+databricks auth describe -o json
+```
+
+Feito isso, o workspace sai do zero ao pipeline completo com
+`.\scripts\projeto.ps1 deploy` - o bundle cria os schemas e o Volume, e a
+primeira task baixa os dados. Se o egresso do workspace não alcançar o CDN da
+TLC (ver nota acima), rode antes `.\scripts\projeto.ps1 landing`, que cria as
+pastas do Volume e sobe os 10 parquets da sua máquina.
 
 ### ✅ Qualidade de código local
 
