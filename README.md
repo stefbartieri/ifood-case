@@ -175,6 +175,7 @@ ifood-case/
 │   ├── 02_resposta_p1_media_total_amount_mes.py
 │   ├── 03_resposta_p2_media_passageiros_hora_maio.py
 │   └── sql/                      # consultas prontas para o SQL Warehouse
+├── docs/ESCALABILIDADE.md        # gatilhos de evolução da arquitetura em produção
 ├── docs/manual_steps/            # guias passo a passo (modelo de execução manual)
 ├── scripts/                      # utilitários de setup/execução (.ps1 e .sh)
 ├── tests/                        # pytest (schema canônico, regras de DQ)
@@ -373,7 +374,9 @@ ocupação para baixo.
 - Gold é uma **tabela flat** de 8 colunas -atende ao enunciado, mas não é um
   modelo dimensional.
 
-**Próximos passos naturais:**
+**Próximos passos naturais** -cada um com a **condição numérica de disparo**
+documentada em [docs/ESCALABILIDADE.md](docs/ESCALABILIDADE.md), que também
+registra o que **não** mudaria em nenhuma escala:
 
 - **Modelagem dimensional da gold**: fato no grão da corrida + dimensão de
   tempo e de zona (`taxi_zone_lookup`, já mapeada). É nesse cenário que a
@@ -382,8 +385,10 @@ ocupação para baixo.
 - CI (GitHub Actions) rodando lint, testes e `bundle validate` a cada push.
 - Agendamento e alertas no job (Lakeflow Declarative Pipelines com
   expectations substituiria as regras manuais de DQ).
-- Evolução incremental da ingestão (Auto Loader) para novos meses.
-- OPTIMIZE/liquid clustering quando o volume crescer.
+- Auto Loader com checkpoint, quando a chegada dos arquivos deixar de ser uma
+  lista previsível.
+- Liquid clustering em vez de partição estática, a partir de 1 TB por tabela
+  (abaixo disso a recomendação da plataforma é não particionar).
 
 ## Extra -Dashboard
 
