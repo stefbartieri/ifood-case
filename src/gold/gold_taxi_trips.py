@@ -6,9 +6,12 @@
 # MAGIC origem), aplica as 4 regras de DQ na ordem fixa R1→R4 (cada linha removida
 # MAGIC conta apenas na PRIMEIRA regra violada), grava a gold com as 8 colunas do
 # MAGIC case (overwrite completo) e persiste as metricas por regra em
-# MAGIC `workspace.nyc_taxi_gold.dq_metrics`. A reconciliacao
-# MAGIC `linhas_bronze == linhas_gold + soma(removidas)` e verificada com `assert`
-# MAGIC por taxi_type e no total — o notebook FALHA se nao fechar.
+# MAGIC `workspace.nyc_taxi_gold.dq_metrics`. As linhas reprovadas nao sao
+# MAGIC descartadas: vao para `workspace.nyc_taxi_gold.taxi_trips_rejected` com o
+# MAGIC motivo em `_reject_reason`, permitindo auditoria linha a linha. A
+# MAGIC reconciliacao `linhas_bronze == linhas_gold + soma(removidas)` e o
+# MAGIC particionamento `gold + quarentena == bronze` sao verificados com `assert`
+# MAGIC por taxi_type e no total — o notebook FALHA se nao fecharem.
 
 # COMMAND ----------
 
@@ -28,6 +31,12 @@ GOLD_COLUMNS = {
     "taxi_type": "string",
     "pickup_year_month": "string",
     "pickup_hour": "int",
+}
+
+REJECTED_COLUMNS = {
+    **GOLD_COLUMNS,
+    "source_year_month": "string",
+    "_reject_reason": "string",
 }
 
 JANELA_PICKUP = ("2023-01-01 00:00:00", "2023-06-01 00:00:00")
@@ -78,11 +87,12 @@ def classificar_dq(df):
     )
 
 
-def selecionar_schema_gold(df):
-    """Projeta o schema gold (8 colunas) com as derivadas do pickup."""
+def _projecao_gold():
+    """Expressoes das 8 colunas da gold, na ordem de GOLD_COLUMNS. Usada pela
+    gold e pela quarentena para que as duas nao possam divergir."""
     from pyspark.sql import functions as F
 
-    return df.select(
+    return [
         F.col("VendorID").cast("int"),
         F.col("passenger_count").cast("int"),
         F.col("total_amount").cast("double"),
@@ -91,6 +101,27 @@ def selecionar_schema_gold(df):
         F.col("taxi_type"),
         F.date_format("tpep_pickup_datetime", "yyyy-MM").alias("pickup_year_month"),
         F.hour("tpep_pickup_datetime").cast("int").alias("pickup_hour"),
+    ]
+
+
+def selecionar_schema_gold(df):
+    """Projeta o schema gold (8 colunas) com as derivadas do pickup."""
+    return df.select(*_projecao_gold())
+
+
+def selecionar_schema_rejected(df):
+    """Projeta o schema da quarentena (10 colunas): as 8 da gold + a linhagem
+    source_year_month + o motivo (_reject_reason, vindo de dq_regra_violada).
+
+    Espera o DataFrame ja classificado e filtrado em dq_regra_violada IS NOT
+    NULL. Linhas que violam R1 por pickup nulo produzem derivadas nulas — e o
+    comportamento correto: nao se inventa data para um registro invalido."""
+    from pyspark.sql import functions as F
+
+    return df.select(
+        *_projecao_gold(),
+        F.col("source_year_month"),
+        F.col("dq_regra_violada").alias("_reject_reason"),
     )
 
 
@@ -169,6 +200,23 @@ print("Metricas gravadas em workspace.nyc_taxi_gold.dq_metrics")
 
 # COMMAND ----------
 
+# Quarentena: linhas reprovadas com o motivo, para auditoria linha a linha.
+# Complemento exato da gold — as duas juntas reconstituem a bronze.
+
+df_rejected = selecionar_schema_rejected(
+    df_classificado.filter("dq_regra_violada IS NOT NULL")
+)
+
+(
+    df_rejected.write.mode("overwrite")
+    .option("overwriteSchema", "true")
+    .saveAsTable("workspace.nyc_taxi_gold.taxi_trips_rejected")
+)
+
+print("Quarentena gravada em workspace.nyc_taxi_gold.taxi_trips_rejected")
+
+# COMMAND ----------
+
 # Reconciliacao obrigatoria: linhas_bronze == linhas_gold + soma(removidas),
 # por taxi_type e no total. Falha explicita se nao fechar.
 
@@ -194,6 +242,53 @@ for escopo in escopos:
     )
 
 print("Reconciliacao OK em todos os escopos")
+
+# COMMAND ----------
+
+# Particionamento: gold + quarentena == bronze, lendo as TABELAS GRAVADAS (nao
+# os DataFrames em memoria) — prova que o que foi persistido esta completo.
+
+gold_por_tipo = {
+    linha["taxi_type"]: linha["n"]
+    for linha in spark.sql(
+        "SELECT taxi_type, COUNT(*) AS n "
+        "FROM workspace.nyc_taxi_gold.taxi_trips GROUP BY taxi_type"
+    ).collect()
+}
+rej_por_tipo = {
+    linha["taxi_type"]: linha["n"]
+    for linha in spark.sql(
+        "SELECT taxi_type, COUNT(*) AS n "
+        "FROM workspace.nyc_taxi_gold.taxi_trips_rejected GROUP BY taxi_type"
+    ).collect()
+}
+
+for escopo in escopos:
+    bronze_n = mets[(escopo, "linhas_bronze")]
+    if escopo == "total":
+        gold_n, rej_n = sum(gold_por_tipo.values()), sum(rej_por_tipo.values())
+    else:
+        gold_n, rej_n = gold_por_tipo.get(escopo, 0), rej_por_tipo.get(escopo, 0)
+    print(f"[{escopo}] gold={gold_n} + quarentena={rej_n} vs bronze={bronze_n}")
+    assert bronze_n == gold_n + rej_n, (
+        f"PARTICIONAMENTO FALHOU para {escopo}: "
+        f"gold={gold_n} + quarentena={rej_n} != bronze={bronze_n}"
+    )
+
+# Cada motivo da quarentena bate com a metrica removidas_* correspondente.
+por_motivo = {
+    linha["_reject_reason"]: linha["n"]
+    for linha in spark.sql(
+        "SELECT _reject_reason, COUNT(*) AS n "
+        "FROM workspace.nyc_taxi_gold.taxi_trips_rejected GROUP BY _reject_reason"
+    ).collect()
+}
+for nome, _ in REGRAS_DQ:
+    esperado = mets[("total", nome)]
+    obtido = por_motivo.get(nome, 0)
+    assert obtido == esperado, f"{nome}: quarentena={obtido} != dq_metrics={esperado}"
+
+print("Particionamento OK: gold + quarentena reconstituem a bronze")
 
 # COMMAND ----------
 

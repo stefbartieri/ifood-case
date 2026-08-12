@@ -10,9 +10,11 @@ from src.gold.build_gold import (
     JANELA_PICKUP,
     METRICAS,
     REGRAS_DQ,
+    REJECTED_COLUMNS,
     calcular_metricas,
     classificar_dq,
     selecionar_schema_gold,
+    selecionar_schema_rejected,
 )
 
 # ---------------------------------------------------------------------------
@@ -70,6 +72,25 @@ def test_gold_columns_8_colunas_nomes_e_tipos() -> None:
     assert GOLD_COLUMNS["pickup_hour"] == "int"
 
 
+def test_rejected_columns_10_colunas_gold_mais_linhagem_e_motivo() -> None:
+    esperado = [*GOLD_COLUMNS, "source_year_month", "_reject_reason"]
+    assert list(REJECTED_COLUMNS) == esperado
+    assert len(REJECTED_COLUMNS) == 10
+    # As 8 primeiras sao exatamente as da gold, com os mesmos tipos.
+    for coluna, tipo in GOLD_COLUMNS.items():
+        assert REJECTED_COLUMNS[coluna] == tipo
+    assert REJECTED_COLUMNS["source_year_month"] == "string"
+    assert REJECTED_COLUMNS["_reject_reason"] == "string"
+
+
+def test_motivos_possiveis_sao_metricas_conhecidas() -> None:
+    """Nenhum _reject_reason pode ser orfao: todo motivo tem metrica em
+    dq_metrics, senao a quarentena nao reconcilia com as contagens."""
+    motivos = {nome for nome, _ in REGRAS_DQ}
+    assert motivos.issubset(set(METRICAS))
+    assert motivos == {m for m in METRICAS if m.startswith("removidas_")}
+
+
 def test_notebook_espelha_o_modulo() -> None:
     """O bloco INICIO/FIM logica gold do notebook nao pode divergir do modulo."""
     notebook = Path(__file__).parent.parent / "src" / "gold" / "gold_taxi_trips.py"
@@ -82,6 +103,7 @@ def test_notebook_espelha_o_modulo() -> None:
     exec(bloco, espaco)  # noqa: S102 - bloco controlado do proprio repo
 
     assert espaco["GOLD_COLUMNS"] == GOLD_COLUMNS
+    assert espaco["REJECTED_COLUMNS"] == REJECTED_COLUMNS
     assert espaco["JANELA_PICKUP"] == JANELA_PICKUP
     assert espaco["REGRAS_DQ"] == REGRAS_DQ
     assert espaco["METRICAS"] == METRICAS
@@ -141,14 +163,15 @@ def df_mini(spark):
     """1 linha limpa + 1 violacao de cada regra + 1 violando R1 E R4 (deve
     contar SO em R1) + 1 linha green limpa."""
     linhas = [
-        # (VendorID, pickup, dropoff, passenger_count, total_amount, taxi_type)
-        (1, "2023-03-10 08:00:00", "2023-03-10 08:20:00", 1, 20.0, "yellow"),
-        (2, "2008-12-31 23:00:00", "2023-01-01 01:00:00", 1, 10.0, "yellow"),
-        (1, "2023-05-05 12:00:00", "2023-05-05 12:00:00", 2, 15.0, "yellow"),
-        (2, "2023-02-01 07:00:00", "2023-02-01 07:30:00", 1, -751.0, "yellow"),
-        (1, "2023-04-15 18:00:00", "2023-04-15 18:40:00", 0, 30.0, "yellow"),
-        (2, "2030-01-01 00:00:00", "2030-01-01 00:30:00", None, 25.0, "yellow"),
-        (1, "2023-05-20 22:00:00", "2023-05-20 22:45:00", 3, 40.0, "green"),
+        # (VendorID, pickup, dropoff, passenger_count, total_amount, taxi_type,
+        #  source_year_month = mes do ARQUIVO de origem)
+        (1, "2023-03-10 08:00", "2023-03-10 08:20", 1, 20.0, "yellow", "2023-03"),
+        (2, "2008-12-31 23:00", "2023-01-01 01:00", 1, 10.0, "yellow", "2023-01"),
+        (1, "2023-05-05 12:00", "2023-05-05 12:00", 2, 15.0, "yellow", "2023-05"),
+        (2, "2023-02-01 07:00", "2023-02-01 07:30", 1, -751.0, "yellow", "2023-02"),
+        (1, "2023-04-15 18:00", "2023-04-15 18:40", 0, 30.0, "yellow", "2023-04"),
+        (2, "2030-01-01 00:00", "2030-01-01 00:30", None, 25.0, "yellow", "2023-05"),
+        (1, "2023-05-20 22:00", "2023-05-20 22:45", 3, 40.0, "green", "2023-05"),
     ]
     df = spark.createDataFrame(
         [
@@ -159,11 +182,13 @@ def df_mini(spark):
                 pc,
                 ta,
                 tt,
+                sym,
             )
-            for v, pu, do, pc, ta, tt in linhas
+            for v, pu, do, pc, ta, tt, sym in linhas
         ],
         "VendorID int, tpep_pickup_datetime timestamp, tpep_dropoff_datetime "
-        "timestamp, passenger_count int, total_amount double, taxi_type string",
+        "timestamp, passenger_count int, total_amount double, taxi_type string, "
+        "source_year_month string",
     )
     return df.selectExpr(
         "VendorID",
@@ -172,6 +197,7 @@ def df_mini(spark):
         "passenger_count",
         "total_amount",
         "taxi_type",
+        "source_year_month",
     )
 
 
@@ -240,3 +266,28 @@ def test_schema_gold_8_colunas(df_mini) -> None:
     assert linhas["yellow"]["pickup_hour"] == 8
     assert linhas["green"]["pickup_year_month"] == "2023-05"
     assert linhas["green"]["pickup_hour"] == 22
+
+
+def test_quarentena_complementar_e_disjunta(df_mini) -> None:
+    """Gold e quarentena particionam a entrada: soma bate, nenhuma linha em
+    ambas, todo rejeitado tem motivo e todo motivo e uma regra conhecida."""
+    df_classificado = classificar_dq(df_mini)
+    df_gold = selecionar_schema_gold(df_classificado.filter("dq_regra_violada IS NULL"))
+    df_rejected = selecionar_schema_rejected(
+        df_classificado.filter("dq_regra_violada IS NOT NULL")
+    )
+
+    assert df_rejected.columns == list(REJECTED_COLUMNS)
+    assert df_gold.count() + df_rejected.count() == df_mini.count()
+    assert df_rejected.filter("_reject_reason IS NULL").count() == 0
+
+    motivos = {linha["_reject_reason"] for linha in df_rejected.collect()}
+    assert motivos == {nome for nome, _ in REGRAS_DQ}
+
+    # A linhagem sobrevive: a corrida de 2008 veio do arquivo de janeiro.
+    de_2008 = df_rejected.filter("VendorID = 2 AND total_amount = 10.0").collect()[0]
+    assert de_2008["source_year_month"] == "2023-01"
+    assert de_2008["_reject_reason"] == "removidas_r1_pickup_fora_janela"
+
+    # Derivadas continuam calculadas a partir do pickup, mesmo invalido.
+    assert de_2008["pickup_year_month"] == "2008-12"

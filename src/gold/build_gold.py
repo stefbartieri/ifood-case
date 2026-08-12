@@ -9,6 +9,10 @@ os dois nao divergem.
 Semantica das regras: a gold mantem apenas linhas que satisfazem TODAS as
 regras; cada linha removida e atribuida a PRIMEIRA regra violada (ordem
 R1->R4), garantindo linhas_bronze == linhas_gold + soma(removidas).
+
+As linhas reprovadas nao sao descartadas: vao para a quarentena
+(taxi_trips_rejected) anotadas com o motivo em _reject_reason. Gold e
+quarentena sao complementares e disjuntas — juntas reconstituem a bronze.
 """
 
 # Schema da gold: exatamente 8 colunas, nesta ordem (nomes e tipos do case).
@@ -21,6 +25,14 @@ GOLD_COLUMNS = {
     "taxi_type": "string",
     "pickup_year_month": "string",
     "pickup_hour": "int",
+}
+
+# Schema da quarentena: as 8 colunas da gold (mesma ordem) + a linhagem que
+# leva de volta ao arquivo de origem + o motivo da reprovacao.
+REJECTED_COLUMNS = {
+    **GOLD_COLUMNS,
+    "source_year_month": "string",
+    "_reject_reason": "string",
 }
 
 # Janela de pickup Jan-Mai/2023: intervalo MEIO-ABERTO [inicio, fim).
@@ -75,11 +87,12 @@ def classificar_dq(df):
     )
 
 
-def selecionar_schema_gold(df):
-    """Projeta o schema gold (8 colunas) com as derivadas do pickup."""
+def _projecao_gold():
+    """Expressoes das 8 colunas da gold, na ordem de GOLD_COLUMNS. Usada pela
+    gold e pela quarentena para que as duas nao possam divergir."""
     from pyspark.sql import functions as F
 
-    return df.select(
+    return [
         F.col("VendorID").cast("int"),
         F.col("passenger_count").cast("int"),
         F.col("total_amount").cast("double"),
@@ -88,6 +101,27 @@ def selecionar_schema_gold(df):
         F.col("taxi_type"),
         F.date_format("tpep_pickup_datetime", "yyyy-MM").alias("pickup_year_month"),
         F.hour("tpep_pickup_datetime").cast("int").alias("pickup_hour"),
+    ]
+
+
+def selecionar_schema_gold(df):
+    """Projeta o schema gold (8 colunas) com as derivadas do pickup."""
+    return df.select(*_projecao_gold())
+
+
+def selecionar_schema_rejected(df):
+    """Projeta o schema da quarentena (10 colunas): as 8 da gold + a linhagem
+    source_year_month + o motivo (_reject_reason, vindo de dq_regra_violada).
+
+    Espera o DataFrame ja classificado e filtrado em dq_regra_violada IS NOT
+    NULL. Linhas que violam R1 por pickup nulo produzem derivadas nulas — e o
+    comportamento correto: nao se inventa data para um registro invalido."""
+    from pyspark.sql import functions as F
+
+    return df.select(
+        *_projecao_gold(),
+        F.col("source_year_month"),
+        F.col("dq_regra_violada").alias("_reject_reason"),
     )
 
 
