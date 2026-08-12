@@ -68,6 +68,7 @@ flowchart LR
     subgraph Gold["Gold (consumo)"]
         GLD["workspace.nyc_taxi_gold.taxi_trips<br/>5 colunas do case + taxi_type + derivadas"]
         DQ["workspace.nyc_taxi_gold.dq_metrics<br/>contagem por regra de limpeza"]
+        REJ["workspace.nyc_taxi_gold.taxi_trips_rejected<br/>linhas reprovadas + _reject_reason"]
         V1["vw_media_total_amount_mes"]
         V2["vw_media_passageiros_hora_maio"]
     end
@@ -77,6 +78,7 @@ flowchart LR
     TLC -->|download local +<br/>upload manual| VOL
     VOL -->|leitura mês a mês,<br/>casts explícitos| BRZ
     BRZ -->|4 regras DQ<br/>R1→R4| GLD
+    BRZ -->|linhas reprovadas<br/>com o motivo| REJ
     GLD --> DQ
     GLD --> V1
     GLD --> V2
@@ -95,8 +97,10 @@ _2023-01..05.parquet  -->  workspace.nyc_taxi_landing   workspace.nyc_taxi_bronz
 (10 arquivos, imutáveis)   .files                       .taxi_trips                   .taxi_trips (5 colunas do case
                            parquets ORIGINAIS           24 colunas canônicas,         + taxi_type + derivadas)
                                                         yellow+green, SEM filtro,     + dq_metrics (DQ por regra)
-                                                        partição (taxi_type,          + vw_media_total_amount_mes
-                                                        source_year_month)            + vw_media_passageiros_hora_maio
+                                                        partição (taxi_type,          + taxi_trips_rejected (linhas
+                                                        source_year_month)              reprovadas + _reject_reason)
+                                                                                      + vw_media_total_amount_mes
+                                                                                      + vw_media_passageiros_hora_maio
                                                                                                 |
                                                                                                 v
                                                                                       analysis/ (EDA + P1 + P2)
@@ -109,6 +113,10 @@ baixados; a bronze unifica yellow+green num schema canônico com casts
 explícitos **sem descartar nenhuma linha**; toda limpeza acontece na gold, com
 regras explícitas e contagem por regra persistida em `dq_metrics`
 (reconciliação obrigatória: `linhas_bronze == linhas_gold + soma(removidas)`).
+As linhas reprovadas **não são descartadas**: vão para a quarentena
+`taxi_trips_rejected` com o motivo em `_reject_reason`, de modo que gold e
+quarentena são complementares e disjuntas -juntas reconstituem a bronze, e
+qualquer corrida removida é auditável linha a linha.
 
 ### Por que não há camada silver
 
@@ -157,7 +165,7 @@ ifood-case/
 │   ├── bronze/schema_canonico.py # schema canônico (Python puro, testável)
 │   ├── bronze/bronze_taxi_trips.py  # notebook Databricks da bronze
 │   ├── gold/build_gold.py        # regras de DQ e transformações da gold
-│   ├── gold/gold_taxi_trips.py   # notebook Databricks da gold + dq_metrics
+│   ├── gold/gold_taxi_trips.py   # notebook da gold + dq_metrics + quarentena
 │   ├── gold/criar_views.py       # notebook que cria as views (task do job)
 │   └── gold/sql/create_views.sql # views SQL das 2 perguntas
 ├── analysis/                     # análises do case
@@ -221,9 +229,11 @@ guias vivem no repo; as ações no workspace são executadas seguindo os guias d
 3. **Gold + views** -siga
    [docs/manual_steps/003-camada-consumo.md](docs/manual_steps/003-camada-consumo.md):
    execute [src/gold/gold_taxi_trips.py](src/gold/gold_taxi_trips.py) (aplica
-   as 4 regras de DQ, grava `dq_metrics` e valida a reconciliação com
-   `assert`) e crie as views com
-   [src/gold/sql/create_views.sql](src/gold/sql/create_views.sql).
+   as 4 regras de DQ, grava `dq_metrics` e a quarentena `taxi_trips_rejected`,
+   e valida reconciliação e particionamento com `assert`) e crie as views com
+   [src/gold/sql/create_views.sql](src/gold/sql/create_views.sql). Conferência
+   da quarentena em
+   [docs/manual_steps/008-quarentena-dq.md](docs/manual_steps/008-quarentena-dq.md).
 4. **Análises** -siga
    [docs/manual_steps/004-analises.md](docs/manual_steps/004-analises.md):
    execute os notebooks de [analysis/](analysis/) (EDA, P1, P2) e as
@@ -265,6 +275,17 @@ por regra (cada linha conta só na primeira regra violada): pickup fora de
 Jan–Mai/2023: **113** · dropoff ≤ pickup: **6.595** · `total_amount` negativo:
 **142.294** · `passenger_count` nulo ou zero: **725.837**. A reconciliação
 fecha com diferença **0** nos três escopos (yellow, green, total).
+
+Essas 874.839 corridas não são descartadas: ficam em
+`workspace.nyc_taxi_gold.taxi_trips_rejected` com o motivo, então a auditoria
+é linha a linha, não só agregada -e `gold + quarentena` reconstitui a bronze:
+
+```sql
+SELECT VendorID, tpep_pickup_datetime, total_amount, source_year_month
+FROM workspace.nyc_taxi_gold.taxi_trips_rejected
+WHERE _reject_reason = 'removidas_r3_total_amount_negativo'
+ORDER BY total_amount LIMIT 5;   -- menor valor da base: -982,95
+```
 
 ### 💰 P1 -média de `total_amount` por mês (yellow taxis)
 
@@ -320,7 +341,7 @@ ocupação para baixo.
 | 🧹 Qualidade e organização do código | Módulos Python puros testáveis (`src/bronze/schema_canonico.py`, `src/gold/build_gold.py`) espelhados nos notebooks com teste de consistência; `ruff` + `black` + `pytest` configurados em `pyproject.toml`; 17 testes; convenção de commits e uma branch por entrega, integradas com merges `--no-ff` |
 | 🔬 Análise exploratória | `analysis/01_eda_nyc_taxi.py`: volumetria validada contra a origem, 6 hipóteses de anomalia confirmadas/refutadas com contagem (nulls, datas de 2001–2008, estornos de até −982,95, `payment_type=0` correlacionado 1:1 com nulls, `RatecodeID=99`, outlier de 342 mil milhas) e impacto da limpeza quantificado |
 | ⚖️ Justificativa das escolhas técnicas | Decisões documentadas neste README e nos docstrings/células markdown dos notebooks -ex.: leitura mês a mês por causa do **schema drift real** entre 2023-01 e 2023-02..05 (tipos e grafia `airport_fee`/`Airport_fee`); TIMESTAMP_NTZ sem conversão de fuso; limpeza só na gold com contagem por regra |
-| 💡 Criatividade | P2 respondida em dois escopos + dupla leitura ocupação × demanda; `dq_metrics` com atribuição por primeira regra violada e reconciliação exata; paridade SQL × PySpark como verificação cruzada; benchmarks externos de sanidade para a P1; pipeline executável com 1 comando via Asset Bundle |
+| 💡 Criatividade | P2 respondida em dois escopos + dupla leitura ocupação × demanda; `dq_metrics` com atribuição por primeira regra violada e reconciliação exata, com quarentena `taxi_trips_rejected` tornando cada linha removida auditável; paridade SQL × PySpark como verificação cruzada; benchmarks externos de sanidade para a P1; pipeline executável com 1 comando via Asset Bundle |
 | 🗣️ Clareza na comunicação | Este README (arquitetura, execução, resultados com interpretação); guias passo a passo em `docs/manual_steps/`; dashboard com as respostas; notebooks com células markdown explicando cada etapa e tabelas finais de evidência |
 
 ## Limitações e próximos passos
@@ -335,18 +356,11 @@ ocupação para baixo.
   monitoramento de produção** (adequado ao case).
 - **FHV/FHVHV fora de escopo** (sem `passenger_count`).
 - Tabelas pequenas (<1 GB): sem particionamento físico na gold nem OPTIMIZE.
-- **Linhas removidas pela limpeza existem só como contagem** em `dq_metrics`:
-  a reconciliação fecha no agregado, mas não há auditoria linha a linha das
-  ~875 mil corridas descartadas.
 - Gold é uma **tabela flat** de 8 colunas -atende ao enunciado, mas não é um
   modelo dimensional.
 
 **Próximos passos naturais:**
 
-- **Quarentena em vez de descarte**: rotear as linhas reprovadas para
-  `taxi_trips_rejected` com uma coluna `_reject_reason` (a regra já é
-  identificada em passada única por `classificar_dq`), trocando a auditoria
-  agregada por auditoria linha a linha sem perder a reconciliação.
 - **Modelagem dimensional da gold**: fato no grão da corrida + dimensão de
   tempo e de zona (`taxi_zone_lookup`, já mapeada). É nesse cenário que a
   camada silver passa a se justificar -a limpeza sai da gold e vira estágio
