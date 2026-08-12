@@ -32,7 +32,14 @@ DESCRIBE VOLUME workspace.nyc_taxi_landing.files;
    `nyc_taxi_landing`, `nyc_taxi_bronze`, `nyc_taxi_gold`) e de
    `DESCRIBE VOLUME workspace.nyc_taxi_landing.files`.
 
-## 3. Upload dos 10 parquets para o Volume
+## 3. Upload dos 10 parquets para o Volume (alternativa)
+
+> **O caminho padrão hoje é automático.** A primeira task do job baixa os
+> arquivos da origem pública direto para o Volume — veja
+> [011-ingestao-automatizada.md](011-ingestao-automatizada.md). Esta seção
+> continua válida como alternativa para quando o egresso de internet do
+> workspace não alcançar a origem, ou para carregar a landing sem executar o
+> job.
 
 Os arquivos estão em `data/landing/{yellow|green}/2023/` na sua máquina
 (baixados pelo script `src/ingestion/download_tlc.py`). O destino final é:
