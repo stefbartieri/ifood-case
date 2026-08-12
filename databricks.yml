@@ -1,4 +1,4 @@
-# Databricks Asset Bundle — deploy e execucao automatizados do pipeline.
+# Databricks Asset Bundle - deploy e execucao automatizados do pipeline.
 #
 # Uso (com a CLI autenticada no workspace de destino):
 #   databricks bundle validate                 # confere a configuracao

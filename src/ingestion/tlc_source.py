@@ -1,4 +1,4 @@
-"""Partes deterministicas da ingestao da NYC TLC — importavel sem dependencias.
+"""Partes deterministicas da ingestao da NYC TLC - importavel sem dependencias.
 
 Sem I/O e sem SparkSession: so as constantes da origem e as funcoes que
 montam URL, nome de arquivo, caminho de destino e a decisao de baixar ou
@@ -36,7 +36,7 @@ def montar_url(taxi_type: str, ano_mes: str, base_url: str = BASE_URL) -> str:
 def caminho_destino(raiz: str, taxi_type: str, ano_mes: str) -> str:
     """Caminho final na landing: {raiz}/{taxi_type}/{ano}/{arquivo_original}.
 
-    Sempre com barra normal — o destino pode ser um Volume do Unity Catalog
+    Sempre com barra normal - o destino pode ser um Volume do Unity Catalog
     (/Volumes/...), onde separador do Windows nao vale.
     """
     ano = ano_mes.split("-")[0]
@@ -49,7 +49,7 @@ def precisa_baixar(tamanho_local: int | None, content_length: int | None) -> boo
     Baixa quando o arquivo nao existe (tamanho_local None), quando o tamanho
     diverge do Content-Length ou quando a origem nao informou o tamanho (nesse
     caso nao da para afirmar que o arquivo local esta integro). So pula com
-    tamanhos conhecidos e iguais — o que torna um download parcial
+    tamanhos conhecidos e iguais - o que torna um download parcial
     autocorretivo na proxima execucao.
     """
     if tamanho_local is None or content_length is None:

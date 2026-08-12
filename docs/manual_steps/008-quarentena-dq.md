@@ -1,4 +1,4 @@
-# Quarentena de qualidade — executar e conferir
+# Quarentena de qualidade - executar e conferir
 
 As linhas reprovadas pelas regras de qualidade deixam de ser descartadas e
 passam a ser gravadas em `workspace.nyc_taxi_gold.taxi_trips_rejected`, cada
@@ -14,14 +14,14 @@ justamente para provar isso.
 
 Escolha **uma** das duas formas.
 
-**Opção A — pipeline completo pelo bundle** (recomendada; ~2 min):
+**Opção A - pipeline completo pelo bundle** (recomendada; ~2 min):
 
 ```bash
 databricks bundle deploy
 databricks bundle run pipeline_nyc_taxi
 ```
 
-**Opção B — só a camada gold, pela interface**: abra o notebook
+**Opção B - só a camada gold, pela interface**: abra o notebook
 `src/gold/gold_taxi_trips.py` no workspace e use **Run all**.
 
 Nos dois casos o notebook falha sozinho se algo não fechar: há um `assert` de
@@ -35,7 +35,7 @@ reconciliação e outro de particionamento. Terminar sem erro já é evidência.
 DESCRIBE TABLE workspace.nyc_taxi_gold.taxi_trips_rejected;
 ```
 
-Esperado: **10 colunas**, nesta ordem — `VendorID`, `passenger_count`,
+Esperado: **10 colunas**, nesta ordem - `VendorID`, `passenger_count`,
 `total_amount`, `tpep_pickup_datetime`, `tpep_dropoff_datetime`, `taxi_type`,
 `pickup_year_month`, `pickup_hour`, `source_year_month`, `_reject_reason`.
 
@@ -69,7 +69,7 @@ Por frota, a soma tem de dar **848.249** no yellow e **26.590** no green.
 
 ## 4. Particionamento: gold + quarentena reconstituem a bronze
 
-Esta é a consulta central — a coluna `diferenca` tem de ser **0** nas três
+Esta é a consulta central - a coluna `diferenca` tem de ser **0** nas três
 linhas.
 
 ```sql
@@ -115,7 +115,7 @@ SELECT * FROM workspace.nyc_taxi_gold.vw_media_total_amount_mes;
 ```
 
 Esperado: bronze 16.526.016 / gold 15.651.177 (total), e a média mensal em
-27,46 · 27,37 · 28,28 · 28,78 · 29,45. Qualquer divergência aqui é problema —
+27,46 · 27,37 · 28,28 · 28,78 · 29,45. Qualquer divergência aqui é problema -
 não ajuste de expectativa.
 
 ---
@@ -148,7 +148,7 @@ Mostra de qual arquivo original vieram as corridas com data fora da janela.
 
 > **Sobre datas nulas**: uma corrida sem `tpep_pickup_datetime` cai na R1 e
 > aparece na quarentena com `pickup_year_month` e `pickup_hour` nulos. É o
-> comportamento correto — não se inventa data para um registro inválido; a
+> comportamento correto - não se inventa data para um registro inválido; a
 > coluna `source_year_month` continua indicando o arquivo de origem.
 
 ---

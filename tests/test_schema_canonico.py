@@ -1,4 +1,4 @@
-"""Testes do schema canonico da bronze — sem SparkSession."""
+"""Testes do schema canonico da bronze - sem SparkSession."""
 
 from pathlib import Path
 

@@ -1,9 +1,9 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # EDA — NYC TLC Trip Records (Jan–Mai/2023, yellow + green)
+# MAGIC # EDA - NYC TLC Trip Records (Jan-Mai/2023, yellow + green)
 # MAGIC
 # MAGIC Analise exploratoria sobre a **bronze** (`workspace.nyc_taxi_bronze.taxi_trips`),
-# MAGIC que preserva 100% das linhas da origem — as anomalias ainda estao visiveis aqui
+# MAGIC que preserva 100% das linhas da origem - as anomalias ainda estao visiveis aqui
 # MAGIC (a gold ja as removeu). Cada hipotese levantada na pesquisa e confirmada ou
 # MAGIC refutada com uma query de contagem. Ao final, cruzamos com
 # MAGIC `workspace.nyc_taxi_gold.dq_metrics` para quantificar o impacto da limpeza.
@@ -79,7 +79,7 @@ display(
 
 # COMMAND ----------
 
-# MAGIC %md ## 3. Anomalias — uma hipotese por celula (confirma/refuta)
+# MAGIC %md ## 3. Anomalias - uma hipotese por celula (confirma/refuta)
 
 # COMMAND ----------
 
@@ -89,7 +89,7 @@ nulls_jan = bronze.filter(
     "AND passenger_count IS NULL"
 ).count()
 print(f"nulls passenger_count yellow 2023-01: {nulls_jan} (esperado 71743)")
-print("CONFIRMADA" if nulls_jan == 71_743 else "REFUTADA — investigar")
+print("CONFIRMADA" if nulls_jan == 71_743 else "REFUTADA - investigar")
 
 # Contexto adicional: nulls e zeros na base inteira (impacto da regra R4 da gold).
 display(
@@ -108,7 +108,7 @@ fora_janela = bronze.filter(
 )
 minimo = bronze.agg(F.min("tpep_pickup_datetime")).first()[0]
 print(f"pickups fora da janela: {fora_janela.count()} | pickup minimo: {minimo}")
-print("CONFIRMADA" if str(minimo).startswith("2008-12-31") else "REFUTADA — investigar")
+print("CONFIRMADA" if str(minimo).startswith("2008-12-31") else "REFUTADA - investigar")
 
 # COMMAND ----------
 
@@ -116,7 +116,7 @@ print("CONFIRMADA" if str(minimo).startswith("2008-12-31") else "REFUTADA — in
 negativos = bronze.filter("total_amount < 0")
 minimo_total = bronze.agg(F.min("total_amount")).first()[0]
 print(f"linhas total_amount < 0: {negativos.count()} | minimo: {minimo_total}")
-print("CONFIRMADA" if minimo_total <= -751.0 else "REFUTADA — investigar")
+print("CONFIRMADA" if minimo_total <= -751.0 else "REFUTADA - investigar")
 
 # COMMAND ----------
 
@@ -137,7 +137,7 @@ print("CONFIRMADA" if rc99 > 0 else "REFUTADA")
 # Hipotese F: outlier de trip_distance (maximo esperado ~258.928 milhas).
 max_dist = bronze.agg(F.max("trip_distance")).first()[0]
 print(f"trip_distance maximo: {max_dist} milhas")
-print("CONFIRMADA" if max_dist > 100_000 else "REFUTADA — investigar")
+print("CONFIRMADA" if max_dist > 100_000 else "REFUTADA - investigar")
 
 # COMMAND ----------
 
@@ -162,6 +162,6 @@ for escopo in ["yellow", "green", "total"]:
     )
 
 print(
-    "\nNota: aproveitamento total ~94,7% — a regra R4 remove nulls E zeros de "
+    "\nNota: aproveitamento total ~94,7% - a regra R4 remove nulls E zeros de "
     "passenger_count (~4,3% do yellow); regra R4 documentada no README."
 )

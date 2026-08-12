@@ -1,4 +1,4 @@
-# Ingestão automatizada — executar e conferir
+# Ingestão automatizada - executar e conferir
 
 A landing deixa de depender de upload manual: o notebook
 `src/ingestion/ingestao_landing.py` baixa os 10 parquets direto da origem
@@ -52,14 +52,14 @@ databricks bundle run pipeline_nyc_taxi
 Resultado esperado: **6 tasks** concluídas, começando por `ingestao`. Nos logs
 dessa task devem aparecer:
 
-- a linha do teste de fumaça — `DNS: <ip>` e `HEAD OK, Content-Length: 1427002`;
-- `[baixado] green_tripdata_2023-01.parquet (1427002 bytes)` — o arquivo
+- a linha do teste de fumaça - `DNS: <ip>` e `HEAD OK, Content-Length: 1427002`;
+- `[baixado] green_tripdata_2023-01.parquet (1427002 bytes)` - o arquivo
   apagado voltou;
 - `[pulado] ...` para os outros 9, que já estavam íntegros;
 - o resumo final por frota, com os totais em bytes.
 
 A primeira execução em Volume vazio leva alguns minutos (~272 MB). Com os
-arquivos presentes, a task é quase instantânea — ela só faz um `HEAD` por
+arquivos presentes, a task é quase instantânea - ela só faz um `HEAD` por
 arquivo e compara tamanhos.
 
 ---
@@ -72,7 +72,7 @@ LIST '/Volumes/workspace/nyc_taxi_landing/files/green/2023';
 ```
 
 Resultado esperado: 5 arquivos em cada, com os nomes originais. A soma dos
-bytes tem de ser **264.426.470** no yellow e **7.936.049** no green — os mesmos
+bytes tem de ser **264.426.470** no yellow e **7.936.049** no green - os mesmos
 totais conferidos na carga original. O próprio notebook verifica isso com
 `assert`, então uma divergência já teria derrubado a task.
 
@@ -108,7 +108,7 @@ ORDER BY pickup_year_month;
 Esperado: bronze **16.526.016** · gold **15.651.177** · quarentena **874.839** ·
 médias **27,46 · 27,37 · 28,28 · 28,78 · 29,45**.
 
-Trocar a forma de trazer os arquivos não pode alterar um único número — é
+Trocar a forma de trazer os arquivos não pode alterar um único número - é
 exatamente isso que estas consultas provam.
 
 ---

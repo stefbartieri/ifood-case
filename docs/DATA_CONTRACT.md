@@ -1,4 +1,4 @@
-# Contrato de dados — `workspace.nyc_taxi_gold.taxi_trips`
+# Contrato de dados - `workspace.nyc_taxi_gold.taxi_trips`
 
 Este documento descreve o que a camada de consumo garante, o que ela não
 garante e o que caracteriza uma mudança quebrando compatibilidade. Vale para a
@@ -73,7 +73,7 @@ fechar. O aproveitamento atual é de 94,71%.
 
 ## O que este contrato não garante
 
-Estes pontos são conhecidos e deliberadamente preservados — filtrá-los seria
+Estes pontos são conhecidos e deliberadamente preservados - filtrá-los seria
 uma decisão de negócio que a camada de consumo não toma sozinha:
 
 - **Sem deduplicação**: não há chave natural confiável, então corridas
@@ -89,7 +89,7 @@ uma decisão de negócio que a camada de consumo não toma sozinha:
 
 ## Política de mudança
 
-**Quebra compatibilidade** — exige aviso prévio aos consumidores:
+**Quebra compatibilidade** - exige aviso prévio aos consumidores:
 
 - remover ou renomear coluna;
 - mudar o tipo de uma coluna;

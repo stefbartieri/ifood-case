@@ -1,4 +1,4 @@
-# Guia manual 006 — Dashboard AI/BI com as respostas do case
+# Guia manual 006 - Dashboard AI/BI com as respostas do case
 
 > Entrega extra: dashboard nativo do Databricks SQL apresentando as duas
 > respostas do case a partir das views da gold. Pré-requisito: views criadas
@@ -29,18 +29,18 @@ Se qualquer uma falhar, pare aqui e reexecute o guia 003 antes de continuar.
 ## 3. Criar o dashboard
 
 1. Menu lateral → **Dashboards** → **Create dashboard**.
-2. Renomeie (clique no título no topo) para: `NYC Taxi — Respostas do Case`.
+2. Renomeie (clique no título no topo) para: `NYC Taxi - Respostas do Case`.
 
 ## 4. Criar os 2 datasets (aba Data)
 
 1. Na aba **Data** do dashboard, clique em **+ Create from SQL** e crie:
-   - Dataset 1 — nome `p1_media_total_amount_mes`:
+   - Dataset 1 - nome `p1_media_total_amount_mes`:
 
      ```sql
      SELECT * FROM workspace.nyc_taxi_gold.vw_media_total_amount_mes
      ```
 
-   - Dataset 2 — nome `p2_media_passageiros_hora_maio`:
+   - Dataset 2 - nome `p2_media_passageiros_hora_maio`:
 
      ```sql
      SELECT * FROM workspace.nyc_taxi_gold.vw_media_passageiros_hora_maio
@@ -48,22 +48,22 @@ Se qualquer uma falhar, pare aqui e reexecute o guia 003 antes de continuar.
 
 2. Rode cada um (Run) para materializar a pré-via dos dados.
 
-## 5. Visualização P1 — barras (média por mês)
+## 5. Visualização P1 - barras (média por mês)
 
 1. Na aba **Canvas**, clique em **Add a visualization** e posicione o widget.
 2. Configure: **Dataset** = `p1_media_total_amount_mes`; **Visualization** =
    **Bar**; **X axis** = `pickup_year_month`; **Y axis** =
-   `media_total_amount` (agregação SUM ou AVG dá o mesmo resultado — há 1
+   `media_total_amount` (agregação SUM ou AVG dá o mesmo resultado - há 1
    linha por mês).
-3. Título do widget: `P1 — Média de total_amount por mês (yellow, 2023)`.
+3. Título do widget: `P1 - Média de total_amount por mês (yellow, 2023)`.
 
-## 6. Visualização P2 — linhas (média por hora, 2 séries)
+## 6. Visualização P2 - linhas (média por hora, 2 séries)
 
 1. Adicione outra visualização: **Dataset** = `p2_media_passageiros_hora_maio`;
    **Visualization** = **Line**; **X axis** = `pickup_hour`; **Y axis** =
    `media_passageiros`; **Color/Group by** = `escopo` (gera as séries
    `frota_completa` e `yellow`).
-2. Título do widget: `P2 — Média de passenger_count por hora (maio/2023)`.
+2. Título do widget: `P2 - Média de passenger_count por hora (maio/2023)`.
 
 ## 7. Publicar
 
@@ -72,7 +72,7 @@ default, sem compartilhamento externo).
 
 ## 8. Evidência
 
-Capture um screenshot mostrando: o título `NYC Taxi — Respostas do Case` e as
+Capture um screenshot mostrando: o título `NYC Taxi - Respostas do Case` e as
 2 visualizações renderizadas com eixos e legendas visíveis (as séries
 `frota_completa`/`yellow` na P2). O arquivo é arquivado em
 `docs/evidencias/006-dashboard.png`.

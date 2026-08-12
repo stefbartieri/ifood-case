@@ -1,13 +1,13 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Pergunta 1 — Media de total_amount por mes (yellow taxis, Jan–Mai/2023)
+# MAGIC # Pergunta 1 - Media de total_amount por mes (yellow taxis, Jan-Mai/2023)
 # MAGIC
 # MAGIC Resposta calculada de duas formas independentes sobre a camada de consumo:
 # MAGIC **PySpark** (DataFrame API sobre `workspace.nyc_taxi_gold.taxi_trips`) e
 # MAGIC **SQL** (view `workspace.nyc_taxi_gold.vw_media_total_amount_mes`), com
 # MAGIC paridade (|dif| <= 0,01) e validacao contra benchmark externo (±0,5).
 # MAGIC
-# MAGIC Filtros herdados da gold: pickup em Jan–Mai/2023, dropoff >
+# MAGIC Filtros herdados da gold: pickup em Jan-Mai/2023, dropoff >
 # MAGIC pickup, `total_amount >= 0`, `passenger_count` nao nulo e > 0.
 
 # COMMAND ----------
@@ -29,7 +29,7 @@ gold = spark.table("workspace.nyc_taxi_gold.taxi_trips")
 
 # COMMAND ----------
 
-# MAGIC %md ## Calculo 1 — PySpark (DataFrame API)
+# MAGIC %md ## Calculo 1 - PySpark (DataFrame API)
 
 # COMMAND ----------
 
@@ -46,7 +46,7 @@ display(p1_pyspark)
 
 # COMMAND ----------
 
-# MAGIC %md ## Calculo 2 — SQL (view da gold)
+# MAGIC %md ## Calculo 2 - SQL (view da gold)
 
 # COMMAND ----------
 
@@ -91,7 +91,7 @@ for mes in sorted(comparacao):
         f"{mes:<9}{c['media_sql']:>8.2f}{c['media_pyspark']:>9.2f}{dif:>7.3f}"
         f"  {paridade:<8}{BENCHMARK_P1[mes]:>9.2f}{desvio:>8.2f}  {status}"
     )
-print(f"\n{'TUDO OK' if problemas == 0 else f'{problemas} problema(s) — investigar'}")
+print(f"\n{'TUDO OK' if problemas == 0 else f'{problemas} problema(s) - investigar'}")
 
 # COMMAND ----------
 

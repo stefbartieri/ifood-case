@@ -1,4 +1,4 @@
-# Guia manual 004 — Executar as análises (EDA + P1 + P2)
+# Guia manual 004 - Executar as análises (EDA + P1 + P2)
 
 > Análises. Importe os 3 notebooks de `analysis/`, execute em ordem
 > (01 → 02 → 03) no serverless e rode os 2 `.sql` no SQL Editor.
@@ -19,7 +19,7 @@ C:\Users\andre\OneDrive\Área de Trabalho\ifood\analysis\03_resposta_p2_media_pa
 **Run all** no serverless. Validações:
 
 - [ ] Tabela de volumetria (célula 1) com os status OK/DIVERGE por mês;
-- [ ] As conclusões CONFIRMADA/REFUTADA das 6 hipóteses de anomalia (A–F);
+- [ ] As conclusões CONFIRMADA/REFUTADA das 6 hipóteses de anomalia (A-F);
 - [ ] A saída do cruzamento com dq_metrics (reconciliação OK por escopo).
 
 ## 3. Executar o notebook 02 (P1)
@@ -27,7 +27,7 @@ C:\Users\andre\OneDrive\Área de Trabalho\ifood\analysis\03_resposta_p2_media_pa
 **Run all**. Validações:
 
 - [ ] A tabela de comparação (paridade SQL vs PySpark + benchmark) com os
-      flags — esperado: paridade OK nos 5 meses, desvio ≤ ±0,5;
+      flags - esperado: paridade OK nos 5 meses, desvio ≤ ±0,5;
 - [ ] A tabela markdown da célula final (5 linhas).
 
 ## 4. Executar o notebook 03 (P2)

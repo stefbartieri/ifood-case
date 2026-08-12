@@ -36,7 +36,7 @@ COMMENT ON TABLE workspace.nyc_taxi_gold.dq_metrics IS
 'Metricas de qualidade por execucao, em formato longo. Sustenta a reconciliacao exata entrada = publicadas + reprovadas, verificada por assert a cada carga. Sobrescrita a cada execucao.';
 
 COMMENT ON TABLE workspace.nyc_taxi_gold.taxi_trips_rejected IS
-'Quarentena: as linhas reprovadas pelas regras de qualidade, anotadas com o motivo. Complemento exato da camada de consumo -- as duas juntas reconstituem a camada conformada. Permite auditoria linha a linha do que foi removido. 874.839 linhas.';
+'Quarentena: as linhas reprovadas pelas regras de qualidade, anotadas com o motivo. Complemento exato da camada de consumo: as duas juntas reconstituem a camada conformada. Permite auditoria linha a linha do que foi removido. 874.839 linhas.';
 
 -- ---------------------------------------------------------------------------
 -- Bloco 3: colunas da bronze (24)
@@ -79,15 +79,15 @@ ALTER TABLE workspace.nyc_taxi_bronze.taxi_trips ALTER COLUMN total_amount
 ALTER TABLE workspace.nyc_taxi_bronze.taxi_trips ALTER COLUMN congestion_surcharge
   COMMENT 'Sobretaxa de congestionamento aplicada em parte de Manhattan.';
 ALTER TABLE workspace.nyc_taxi_bronze.taxi_trips ALTER COLUMN airport_fee
-  COMMENT 'Tarifa de embarque em aeroporto. Exclusiva da frota yellow -- nula nos registros green. A origem alterna a grafia entre airport_fee e Airport_fee ao longo dos meses, unificada aqui.';
+  COMMENT 'Tarifa de embarque em aeroporto. Exclusiva da frota yellow, nula nos registros green. A origem alterna a grafia entre airport_fee e Airport_fee ao longo dos meses, unificada aqui.';
 ALTER TABLE workspace.nyc_taxi_bronze.taxi_trips ALTER COLUMN ehail_fee
-  COMMENT 'Tarifa de chamada eletronica. Exclusiva da frota green -- nula nos registros yellow.';
+  COMMENT 'Tarifa de chamada eletronica. Exclusiva da frota green, nula nos registros yellow.';
 ALTER TABLE workspace.nyc_taxi_bronze.taxi_trips ALTER COLUMN trip_type
-  COMMENT 'Como a corrida foi iniciada. 1 = na rua, 2 = por despacho. Exclusiva da frota green -- nula nos registros yellow.';
+  COMMENT 'Como a corrida foi iniciada. 1 = na rua, 2 = por despacho. Exclusiva da frota green, nula nos registros yellow.';
 ALTER TABLE workspace.nyc_taxi_bronze.taxi_trips ALTER COLUMN taxi_type
   COMMENT 'Linhagem: frota de origem do registro, yellow ou green. Coluna de particionamento.';
 ALTER TABLE workspace.nyc_taxi_bronze.taxi_trips ALTER COLUMN source_year_month
-  COMMENT 'Linhagem: competencia do ARQUIVO de origem, no formato AAAA-MM, derivada do nome do arquivo. Nao confundir com a data do embarque -- arquivos mensais contem corridas de outras competencias. Coluna de particionamento e unidade de reprocessamento.';
+  COMMENT 'Linhagem: competencia do ARQUIVO de origem, no formato AAAA-MM, derivada do nome do arquivo. Nao confundir com a data do embarque: arquivos mensais contem corridas de outras competencias. Coluna de particionamento e unidade de reprocessamento.';
 ALTER TABLE workspace.nyc_taxi_bronze.taxi_trips ALTER COLUMN ingested_at
   COMMENT 'Linhagem: momento em que a linha foi gravada nesta camada.';
 
@@ -132,9 +132,9 @@ ALTER TABLE workspace.nyc_taxi_gold.dq_metrics ALTER COLUMN valor
 ALTER TABLE workspace.nyc_taxi_gold.taxi_trips_rejected ALTER COLUMN VendorID
   COMMENT 'Fornecedor do registro na origem, como veio da camada conformada.';
 ALTER TABLE workspace.nyc_taxi_gold.taxi_trips_rejected ALTER COLUMN passenger_count
-  COMMENT 'Passageiros informados. Pode ser nulo ou zero -- e um dos motivos de reprovacao.';
+  COMMENT 'Passageiros informados. Pode ser nulo ou zero, que e um dos motivos de reprovacao.';
 ALTER TABLE workspace.nyc_taxi_gold.taxi_trips_rejected ALTER COLUMN total_amount
-  COMMENT 'Valor total cobrado. Pode ser negativo -- e um dos motivos de reprovacao.';
+  COMMENT 'Valor total cobrado. Pode ser negativo, que e um dos motivos de reprovacao.';
 ALTER TABLE workspace.nyc_taxi_gold.taxi_trips_rejected ALTER COLUMN tpep_pickup_datetime
   COMMENT 'Inicio da corrida como veio da origem. Pode estar fora da janela de cobertura ou nulo.';
 ALTER TABLE workspace.nyc_taxi_gold.taxi_trips_rejected ALTER COLUMN tpep_dropoff_datetime
@@ -142,7 +142,7 @@ ALTER TABLE workspace.nyc_taxi_gold.taxi_trips_rejected ALTER COLUMN tpep_dropof
 ALTER TABLE workspace.nyc_taxi_gold.taxi_trips_rejected ALTER COLUMN taxi_type
   COMMENT 'Frota de origem da corrida: yellow ou green.';
 ALTER TABLE workspace.nyc_taxi_gold.taxi_trips_rejected ALTER COLUMN pickup_year_month
-  COMMENT 'Competencia do embarque, derivada do horario de inicio. Nula quando o embarque e nulo -- nao se inventa data para registro invalido.';
+  COMMENT 'Competencia do embarque, derivada do horario de inicio. Nula quando o embarque e nulo, porque nao se inventa data para registro invalido.';
 ALTER TABLE workspace.nyc_taxi_gold.taxi_trips_rejected ALTER COLUMN pickup_hour
   COMMENT 'Hora do embarque, derivada do horario de inicio. Nula quando o embarque e nulo.';
 ALTER TABLE workspace.nyc_taxi_gold.taxi_trips_rejected ALTER COLUMN source_year_month

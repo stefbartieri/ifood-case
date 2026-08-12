@@ -1,6 +1,6 @@
-# Guia manual 007 — Deploy e execução automatizados (Asset Bundles)
+# Guia manual 007 - Deploy e execução automatizados (Asset Bundles)
 
-> Alternativa automatizada ao fluxo manual dos guias 002–004: um comando sobe
+> Alternativa automatizada ao fluxo manual dos guias 002-004: um comando sobe
 > os notebooks e cria o job; outro executa o pipeline completo
 > (bronze → gold → views → análises). Pré-requisito: landing carregada
 > (guia 001).
@@ -72,7 +72,7 @@ FROM workspace.nyc_taxi_gold.dq_metrics
 ORDER BY taxi_type, metrica;
 ```
 
-**[VALIDAÇÃO 3]** Valores esperados (idênticos aos já validados): total —
+**[VALIDAÇÃO 3]** Valores esperados (idênticos aos já validados): total -
 `linhas_bronze` 16526016, `linhas_gold` 15651177; removidas r1 113, r2 6595,
 r3 142294, r4 725837 (yellow e green com os parciais conhecidos).
 

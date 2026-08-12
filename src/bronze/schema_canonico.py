@@ -1,4 +1,4 @@
-"""Schema canonico da camada bronze — Python puro, sem pyspark.
+"""Schema canonico da camada bronze - Python puro, sem pyspark.
 
 Fonte de verdade do mapeamento landing -> bronze: 24 colunas (21 de dados +
 3 de linhagem), renames por taxi_type e colunas ausentes preenchidas com NULL.

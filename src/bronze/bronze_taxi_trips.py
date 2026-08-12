@@ -1,13 +1,13 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Bronze — workspace.nyc_taxi_bronze.taxi_trips
+# MAGIC # Bronze - workspace.nyc_taxi_bronze.taxi_trips
 # MAGIC
 # MAGIC Le os parquets ORIGINAIS da landing (`/Volumes/workspace/nyc_taxi_landing/files/`),
-# MAGIC mes a mes (NUNCA `read.parquet(dir/*)` — ha schema drift real entre 2023-01 e
+# MAGIC mes a mes (NUNCA `read.parquet(dir/*)` - ha schema drift real entre 2023-01 e
 # MAGIC 2023-02..05), aplica renames + casts explicitos para o schema canonico de 24
 # MAGIC colunas e grava a tabela Delta particionada por (`taxi_type`, `source_year_month`).
 # MAGIC
-# MAGIC **Nenhuma linha e filtrada** — a bronze preserva 100% das linhas da origem;
+# MAGIC **Nenhuma linha e filtrada** - a bronze preserva 100% das linhas da origem;
 # MAGIC limpeza acontece somente na gold. Reexecucao e idempotente via
 # MAGIC `replaceWhere` restrito as particoes processadas.
 # MAGIC
@@ -32,7 +32,7 @@ print(f"taxi_types={taxi_types} meses={meses}")
 
 # COMMAND ----------
 
-# INICIO schema canonico (espelho de src/bronze/schema_canonico.py — nao editar
+# INICIO schema canonico (espelho de src/bronze/schema_canonico.py - nao editar
 # aqui sem atualizar o modulo; tests/test_schema_canonico.py compara os dois)
 
 COLUNAS_CANONICAS = [
@@ -125,7 +125,7 @@ _COLUNAS_COMUNS = [
 
 
 def colunas_esperadas(taxi_type: str, ano_mes: str) -> set[str]:
-    """Colunas de entrada validas para (taxi_type, ano_mes) — drift conhecido."""
+    """Colunas de entrada validas para (taxi_type, ano_mes) - drift conhecido."""
     if taxi_type == "yellow":
         airport = "airport_fee" if ano_mes == "2023-01" else "Airport_fee"
         return set(_COLUNAS_COMUNS) | {

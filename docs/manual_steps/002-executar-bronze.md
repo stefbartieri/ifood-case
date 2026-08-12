@@ -1,4 +1,4 @@
-# Guia manual 002 — Executar o notebook bronze no Databricks
+# Guia manual 002 - Executar o notebook bronze no Databricks
 
 > Camada bronze. Importe o notebook `src/bronze/bronze_taxi_trips.py`
 > no workspace e execute 2 vezes (a 2ª prova a idempotência).
@@ -26,7 +26,7 @@ databricks workspace import /Workspace/Users/<seu-email>/bronze_taxi_trips --fil
 1. Abra o notebook importado e conecte ao compute **Serverless** (canto superior
    direito → Connect → Serverless).
 2. Clique em **Run all**. Os widgets `taxi_types` e `meses` já vêm com os
-   defaults corretos (`yellow,green` e `2023-01..2023-05`) — não mude nada.
+   defaults corretos (`yellow,green` e `2023-01..2023-05`) - não mude nada.
 3. Aguarde (alguns minutos). A última célula imprime a contagem por partição e
    o schema.
 
@@ -65,17 +65,17 @@ WHERE (taxi_type = 'yellow' AND (ehail_fee IS NOT NULL OR trip_type IS NOT NULL)
    OR (taxi_type = 'green' AND airport_fee IS NOT NULL);
 ```
 
-## 4. Reexecutar o notebook (2ª execução — idempotência)
+## 4. Reexecutar o notebook (2ª execução - idempotência)
 
 1. Volte ao notebook e clique em **Run all** de novo (mesmos widgets).
 2. Ao terminar, rode novamente as queries **(c)**, **(d)** e **(e)** no SQL
-   Editor e cole as saídas — os números devem ser IDÊNTICOS aos da 1ª execução
+   Editor e cole as saídas - os números devem ser IDÊNTICOS aos da 1ª execução
    (o `replaceWhere` substitui as partições em vez de duplicar).
 
 ## 5. Checklist de validação
 
 - [ ] Saída de `DESCRIBE DETAIL` (a)
 - [ ] Saída de `DESCRIBE TABLE` (b)
-- [ ] Contagens yellow (c) e green (d) + total (e) — 1ª execução
+- [ ] Contagens yellow (c) e green (d) + total (e) - 1ª execução
 - [ ] Resultado da query de colunas exclusivas (f)
-- [ ] Contagens (c)/(d)/(e) — 2ª execução (idempotência)
+- [ ] Contagens (c)/(d)/(e) - 2ª execução (idempotência)

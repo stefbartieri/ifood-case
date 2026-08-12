@@ -87,7 +87,7 @@ def test_sem_apostrofo_dentro_dos_literais() -> None:
 
 
 def test_sem_ponto_e_virgula_dentro_dos_literais() -> None:
-    """O executor divide por ';' — um ';' dentro de literal partiria o comando."""
+    """O executor divide por ';' - um ';' dentro de literal partiria o comando."""
     for i, linha in enumerate(TEXTO.splitlines(), 1):
         if linha.strip().startswith("--"):
             continue

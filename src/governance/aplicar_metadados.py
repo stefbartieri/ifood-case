@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Governanca — comentarios e tags no catalogo
+# MAGIC # Governanca - comentarios e tags no catalogo
 # MAGIC
 # MAGIC Executa `src/governance/catalog_metadata.sql` (fonte unica dos metadados)
 # MAGIC via `spark.sql`. Idempotente: reexecutar sobrescreve o mesmo texto.
@@ -30,7 +30,7 @@ with open(caminho_sql, encoding="utf-8") as arquivo:
 def dividir_comandos(sql: str) -> list[str]:
     """Divide o script em comandos.
 
-    Remove as linhas de comentario ANTES de dividir por ';' — um ';' dentro de
+    Remove as linhas de comentario ANTES de dividir por ';' - um ';' dentro de
     comentario partiria um comando ao meio. Este arquivo e majoritariamente
     texto, entao a ordem das duas operacoes importa.
     """
@@ -99,7 +99,7 @@ if sem_comentario:
     cobertura.show(60, truncate=False)
 
 assert sem_comentario == 0, (
-    f"{sem_comentario} coluna(s) sem comentario — cobertura parcial e pior que "
+    f"{sem_comentario} coluna(s) sem comentario - cobertura parcial e pior que "
     "nenhuma, porque sinaliza documentacao abandonada"
 )
 

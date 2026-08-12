@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Views de consumo — criacao automatizada
+# MAGIC # Views de consumo - criacao automatizada
 # MAGIC
 # MAGIC Executa os comandos de `src/gold/sql/create_views.sql` (fonte unica das
 # MAGIC views) via `spark.sql`. Usado como task do job `pipeline_nyc_taxi`
@@ -20,7 +20,7 @@ print(f"Lendo comandos de: {caminho_sql}")
 with open(caminho_sql, encoding="utf-8") as arquivo:
     texto = arquivo.read()
 
-# Remove linhas de comentario ANTES de dividir por ';' — um ';' dentro de
+# Remove linhas de comentario ANTES de dividir por ';' - um ';' dentro de
 # comentario quebraria um comando ao meio.
 texto_sem_comentarios = "\n".join(
     linha for linha in texto.splitlines() if not linha.strip().startswith("--")

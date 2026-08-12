@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Gold — workspace.nyc_taxi_gold.taxi_trips + dq_metrics
+# MAGIC # Gold - workspace.nyc_taxi_gold.taxi_trips + dq_metrics
 # MAGIC
 # MAGIC Le a bronze (`workspace.nyc_taxi_bronze.taxi_trips`, 100% das linhas da
 # MAGIC origem), aplica as 4 regras de DQ na ordem fixa R1→R4 (cada linha removida
@@ -11,7 +11,7 @@
 # MAGIC motivo em `_reject_reason`, permitindo auditoria linha a linha. A
 # MAGIC reconciliacao `linhas_bronze == linhas_gold + soma(removidas)` e o
 # MAGIC particionamento `gold + quarentena == bronze` sao verificados com `assert`
-# MAGIC por taxi_type e no total — o notebook FALHA se nao fecharem.
+# MAGIC por taxi_type e no total - o notebook FALHA se nao fecharem.
 
 # COMMAND ----------
 
@@ -19,7 +19,7 @@
 # validado por pytest contra src/gold/build_gold.py.
 # ruff: noqa: F821, E402
 
-# INICIO logica gold (espelho de src/gold/build_gold.py — nao editar aqui sem
+# INICIO logica gold (espelho de src/gold/build_gold.py - nao editar aqui sem
 # atualizar o modulo; tests/test_gold_rules.py compara os dois)
 
 GOLD_COLUMNS = {
@@ -114,7 +114,7 @@ def selecionar_schema_rejected(df):
     source_year_month + o motivo (_reject_reason, vindo de dq_regra_violada).
 
     Espera o DataFrame ja classificado e filtrado em dq_regra_violada IS NOT
-    NULL. Linhas que violam R1 por pickup nulo produzem derivadas nulas — e o
+    NULL. Linhas que violam R1 por pickup nulo produzem derivadas nulas - e o
     comportamento correto: nao se inventa data para um registro invalido."""
     from pyspark.sql import functions as F
 
@@ -201,7 +201,7 @@ print("Metricas gravadas em workspace.nyc_taxi_gold.dq_metrics")
 # COMMAND ----------
 
 # Quarentena: linhas reprovadas com o motivo, para auditoria linha a linha.
-# Complemento exato da gold — as duas juntas reconstituem a bronze.
+# Complemento exato da gold - as duas juntas reconstituem a bronze.
 
 df_rejected = selecionar_schema_rejected(
     df_classificado.filter("dq_regra_violada IS NOT NULL")
@@ -246,7 +246,7 @@ print("Reconciliacao OK em todos os escopos")
 # COMMAND ----------
 
 # Particionamento: gold + quarentena == bronze, lendo as TABELAS GRAVADAS (nao
-# os DataFrames em memoria) — prova que o que foi persistido esta completo.
+# os DataFrames em memoria) - prova que o que foi persistido esta completo.
 
 gold_por_tipo = {
     linha["taxi_type"]: linha["n"]

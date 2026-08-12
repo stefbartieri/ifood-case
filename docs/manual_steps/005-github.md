@@ -1,4 +1,4 @@
-# Guia manual 005 — Publicar o repositório no GitHub (`ifood-case`)
+# Guia manual 005 - Publicar o repositório no GitHub (`ifood-case`)
 
 > Publicação do repositório no GitHub: criação do repo, conexão do remote
 > e push da main e das branches de trabalho.
@@ -7,13 +7,13 @@
 
 1. Acesse <https://github.com/new> (logado na sua conta).
 2. **Repository name**: `ifood-case` (nome exigido pelo enunciado).
-3. **Visibilidade — a escolha é sua** (o enunciado aceita ambas):
+3. **Visibilidade - a escolha é sua** (o enunciado aceita ambas):
    - **Pública**: avaliadores acessam sem convite; o código fica visível para
      qualquer pessoa.
    - **Privada**: só quem você convidar enxerga; será preciso convidar o
      avaliador (Settings → Collaborators) ou tornar público depois.
 4. **NÃO** marque nenhuma opção de inicialização (sem README, sem .gitignore,
-   sem license — o repo local já tem tudo; inicializar criaria conflito).
+   sem license - o repo local já tem tudo; inicializar criaria conflito).
 5. Clique em **Create repository**.
 
 ## 2. Verificação pré-push (no PowerShell, na raiz do repo)

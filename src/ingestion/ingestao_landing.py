@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Ingestao — origem publica da TLC direto para a landing
+# MAGIC # Ingestao - origem publica da TLC direto para a landing
 # MAGIC
 # MAGIC Baixa os parquets mensais de `{yellow|green}_tripdata_2023-MM.parquet` do
 # MAGIC CDN da TLC e grava em `/Volumes/workspace/nyc_taxi_landing/files/`,
@@ -31,7 +31,7 @@ VOLUME_ROOT = dbutils.widgets.get("volume_root").rstrip("/")
 
 # COMMAND ----------
 
-# INICIO logica de ingestao (espelho de src/ingestion/tlc_source.py — nao editar
+# INICIO logica de ingestao (espelho de src/ingestion/tlc_source.py - nao editar
 # aqui sem atualizar o modulo; tests/test_tlc_source.py compara os dois)
 
 # Origem publica da TLC (sem barra final).
@@ -59,7 +59,7 @@ def montar_url(taxi_type: str, ano_mes: str, base_url: str = BASE_URL) -> str:
 def caminho_destino(raiz: str, taxi_type: str, ano_mes: str) -> str:
     """Caminho final na landing: {raiz}/{taxi_type}/{ano}/{arquivo_original}.
 
-    Sempre com barra normal — o destino pode ser um Volume do Unity Catalog
+    Sempre com barra normal - o destino pode ser um Volume do Unity Catalog
     (/Volumes/...), onde separador do Windows nao vale.
     """
     ano = ano_mes.split("-")[0]
@@ -72,7 +72,7 @@ def precisa_baixar(tamanho_local: int | None, content_length: int | None) -> boo
     Baixa quando o arquivo nao existe (tamanho_local None), quando o tamanho
     diverge do Content-Length ou quando a origem nao informou o tamanho (nesse
     caso nao da para afirmar que o arquivo local esta integro). So pula com
-    tamanhos conhecidos e iguais — o que torna um download parcial
+    tamanhos conhecidos e iguais - o que torna um download parcial
     autocorretivo na proxima execucao.
     """
     if tamanho_local is None or content_length is None:

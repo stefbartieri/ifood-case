@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Pergunta 2 — Media de passenger_count por hora do dia (maio/2023)
+# MAGIC # Pergunta 2 - Media de passenger_count por hora do dia (maio/2023)
 # MAGIC
 # MAGIC Respondida em DOIS escopos lado a lado: `frota_completa` (yellow + green)
 # MAGIC e `yellow`, calculada em **PySpark** (gold) e **SQL** (view
@@ -23,7 +23,7 @@ gold_maio = spark.table("workspace.nyc_taxi_gold.taxi_trips").filter(
 
 # COMMAND ----------
 
-# MAGIC %md ## Calculo 1 — PySpark (frota_completa e yellow lado a lado)
+# MAGIC %md ## Calculo 1 - PySpark (frota_completa e yellow lado a lado)
 
 # COMMAND ----------
 
@@ -40,7 +40,7 @@ display(p2_pyspark)
 
 # COMMAND ----------
 
-# MAGIC %md ## Calculo 2 — SQL (view da gold, pivotada no mesmo formato)
+# MAGIC %md ## Calculo 2 - SQL (view da gold, pivotada no mesmo formato)
 
 # COMMAND ----------
 
@@ -98,7 +98,7 @@ print(
 # MAGIC   quantas pessoas embarcam por hora em um dia tipico de maio. Pico esperado
 # MAGIC   no fim da tarde (~18h): volume de corridas domina a conta.
 # MAGIC
-# MAGIC **Nuance metodologica**: `AVG()` ignora NULL — por isso o filtro da gold
+# MAGIC **Nuance metodologica**: `AVG()` ignora NULL - por isso o filtro da gold
 # MAGIC (`passenger_count IS NOT NULL AND > 0`, regra R4) nao altera a media da
 # MAGIC P2 em relacao a calcula-la na bronze ignorando nulls; ele altera a
 # MAGIC `qtd_corridas` (denominadores) e a P1 (que usa todas as linhas validas).

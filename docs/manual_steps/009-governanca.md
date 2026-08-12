@@ -1,4 +1,4 @@
-# Governança do catálogo — executar e conferir
+# Governança do catálogo - executar e conferir
 
 O catálogo passa a se explicar sozinho: schemas, volume, tabelas, views e
 **todas** as colunas ganham comentário, e as tabelas recebem tags de
@@ -28,14 +28,14 @@ databricks bundle run pipeline_nyc_taxi
 ```
 
 Resultado esperado: **7 tasks** concluídas. A task `governanca` aplica os
-comandos e falha por conta própria se sobrar qualquer coluna sem comentário —
+comandos e falha por conta própria se sobrar qualquer coluna sem comentário -
 há um `assert` de cobertura no fim.
 
 > **Se a task falhar por causa de tags**: não vai acontecer silenciosamente. O
 > notebook trata falha de `SET TAGS` sem abortar e imprime quais comandos não
 > passaram, porque tags de governança podem não estar habilitadas nesta edição
 > da plataforma. Os comentários são aplicados de qualquer forma. Se aparecer
-> esse aviso, copie-o — a limitação vira uma linha no README em vez de um
+> esse aviso, copie-o - a limitação vira uma linha no README em vez de um
 > critério em aberto.
 
 ---

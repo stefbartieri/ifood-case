@@ -1,4 +1,4 @@
-# Guia manual 003 — Executar a camada gold (limpeza + DQ + views)
+# Guia manual 003 - Executar a camada gold (limpeza + DQ + views)
 
 > Camada de consumo. Importe e execute o notebook `src/gold/gold_taxi_trips.py`
 > e crie as views de `src/gold/sql/create_views.sql`.
@@ -15,7 +15,7 @@ Workspace → sua pasta → **Import** → **File** → selecione
 1. Abra o notebook, conecte ao **Serverless** e clique em **Run all**.
 2. A célula de reconciliação imprime, por escopo (`green`, `yellow`, `total`):
    `bronze=... gold=... removidas=... aproveitamento=0.9...` e termina com
-   `Reconciliacao OK em todos os escopos` — se falhar o assert, investigue o erro.
+   `Reconciliacao OK em todos os escopos` - se falhar o assert, investigue o erro.
 3. **[VALIDAÇÃO 1]** Confira a saída da célula de reconciliação e a tabela de
    métricas da última célula (18 linhas).
 
@@ -25,7 +25,7 @@ Workspace → sua pasta → **Import** → **File** → selecione
 DESCRIBE TABLE workspace.nyc_taxi_gold.taxi_trips;
 ```
 
-**[VALIDAÇÃO 2]** Confira a saída — esperado: exatamente 8 colunas
+**[VALIDAÇÃO 2]** Confira a saída - esperado: exatamente 8 colunas
 (`VendorID` int, `passenger_count` int, `total_amount` double,
 `tpep_pickup_datetime` timestamp_ntz, `tpep_dropoff_datetime` timestamp_ntz,
 `taxi_type` string, `pickup_year_month` string, `pickup_hour` int).
@@ -41,7 +41,7 @@ FROM workspace.nyc_taxi_gold.dq_metrics
 GROUP BY taxi_type;
 ```
 
-**[VALIDAÇÃO 3]** Confira a saída — esperado: `diferenca = 0` nas 3 linhas
+**[VALIDAÇÃO 3]** Confira a saída - esperado: `diferenca = 0` nas 3 linhas
 (`yellow`, `green`, `total`).
 
 ## 5. Criar as views de consumo
@@ -58,7 +58,7 @@ ORDER BY pickup_year_month;
 ```
 
 **[VALIDAÇÃO 4]** Confira a saída (esperado: 5 linhas, 2023-01..2023-05; médias
-na faixa ~27–30).
+na faixa ~27-30).
 
 ```sql
 SELECT * FROM workspace.nyc_taxi_gold.vw_media_passageiros_hora_maio
