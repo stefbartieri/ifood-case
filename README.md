@@ -10,7 +10,7 @@
 ![PySpark](https://img.shields.io/badge/PySpark-4.0-E25A1C?logo=apachespark&logoColor=white)
 ![Delta Lake](https://img.shields.io/badge/Delta%20Lake-Unity%20Catalog-00ADD4)
 ![Databricks](https://img.shields.io/badge/Databricks-Free%20Edition-FF3621?logo=databricks&logoColor=white)
-![Testes](https://img.shields.io/badge/testes-44-success)
+![Testes](https://img.shields.io/badge/testes-51-success)
 ![Code style](https://img.shields.io/badge/code%20style-black-000000)
 ![Lint](https://img.shields.io/badge/lint-ruff-D7FF64)
 
@@ -47,7 +47,7 @@ calculadas de forma independente em SQL e PySpark, com paridade verificada.
 
 <div align="center">
 
-| 🚕 16.526.016 corridas | ✅ 94,71% aproveitamento | 🔍 reconciliação exata (dif. 0) | 🧪 44 testes | ⚙️ pipeline em 1 comando |
+| 🚕 16.526.016 corridas | ✅ 94,71% aproveitamento | 🔍 reconciliação exata (dif. 0) | 🧪 51 testes | ⚙️ pipeline em 1 comando |
 |:---:|:---:|:---:|:---:|:---:|
 
 </div>
@@ -181,7 +181,8 @@ ifood-case/
 ├── scripts/                      # utilitários de setup/execução (.ps1 e .sh)
 ├── tests/                        # pytest (schema canônico, regras de DQ)
 ├── databricks.yml                # Asset Bundle (deploy/execução automatizados)
-├── resources/pipeline_job.yml    # job do pipeline como código (5 tasks)
+├── resources/catalogo.yml        # schemas do medalhão e Volume da landing
+├── resources/pipeline_job.yml    # job do pipeline como código (7 tasks)
 ├── README.md
 ├── requirements.txt              # dependências pinadas
 └── pyproject.toml                # config de ruff, black e pytest
@@ -207,6 +208,7 @@ comando por tarefa - Windows (`.ps1`) e macOS/Linux (`.sh`):
 .\scripts\projeto.ps1 setup      # cria a venv (Python 3.12/3.13) e instala dependências
 .\scripts\projeto.ps1 dados      # baixa os 10 parquets da TLC para data/landing (idempotente)
 .\scripts\projeto.ps1 qualidade  # ruff + black --check + pytest
+.\scripts\projeto.ps1 landing    # cria schemas/Volume e carrega a landing da sua máquina
 .\scripts\projeto.ps1 deploy     # bundle validate + deploy + run no Databricks
 ```
 
@@ -267,6 +269,14 @@ databricks bundle run pipeline_nyc_taxi   # ingestão → bronze → gold → vi
 
 As 7 tasks do job são sequenciais e idempotentes: reexecutar não rebaixa
 arquivo íntegro, não duplica linha e não altera nenhum número.
+
+> [!NOTE]
+> A primeira task baixa os dados da origem pública, mas o egresso de internet
+> da Free Edition é restrito a uma allowlist que varia entre workspaces. Se o
+> CDN da TLC não for alcançável no seu, carregue a landing a partir da sua
+> máquina com `.\scripts\projeto.ps1 landing` (ou `./scripts/projeto.sh
+> landing`) e rode o pipeline em seguida: a ingestão detecta a landing íntegra
+> e dispensa a rede.
 
 Pré-requisito: Databricks CLI autenticada no workspace de destino -
 passo a passo em
@@ -376,7 +386,7 @@ compatibilidade. Passo a passo em
 
 | Critério do case (PDF) | Evidência concreta neste repo |
 |---|---|
-| 🧹 Qualidade e organização do código | Módulos Python puros testáveis (`src/bronze/schema_canonico.py`, `src/gold/build_gold.py`) espelhados nos notebooks com teste de consistência; `ruff` + `black` + `pytest` configurados em `pyproject.toml`; 44 testes; convenção de commits e uma branch por entrega, integradas com merges `--no-ff` |
+| 🧹 Qualidade e organização do código | Módulos Python puros testáveis (`src/bronze/schema_canonico.py`, `src/gold/build_gold.py`) espelhados nos notebooks com teste de consistência; `ruff` + `black` + `pytest` configurados em `pyproject.toml`; 51 testes; convenção de commits e uma branch por entrega, integradas com merges `--no-ff` |
 | 🔬 Análise exploratória | `analysis/01_eda_nyc_taxi.py`: volumetria validada contra a origem, 6 hipóteses de anomalia confirmadas/refutadas com contagem (nulls, datas de 2001-2008, estornos de até −982,95, `payment_type=0` correlacionado 1:1 com nulls, `RatecodeID=99`, outlier de 342 mil milhas) e impacto da limpeza quantificado |
 | ⚖️ Justificativa das escolhas técnicas | Decisões documentadas neste README e nos docstrings/células markdown dos notebooks. Por exemplo: leitura mês a mês por causa do **schema drift real** entre 2023-01 e 2023-02..05 (tipos e grafia `airport_fee`/`Airport_fee`); TIMESTAMP_NTZ sem conversão de fuso; limpeza só na gold com contagem por regra |
 | 💡 Criatividade | P2 respondida em dois escopos + dupla leitura ocupação × demanda; `dq_metrics` com atribuição por primeira regra violada e reconciliação exata, com quarentena `taxi_trips_rejected` tornando cada linha removida auditável; paridade SQL × PySpark como verificação cruzada; benchmarks externos de sanidade para a P1; pipeline executável com 1 comando via Asset Bundle |
@@ -388,9 +398,13 @@ compatibilidade. Passo a passo em
 
 - Databricks **Free Edition**: serverless-only, DBFS root desabilitado (por
   isso Volume UC na landing), egresso de internet dos notebooks restrito a
-  allowlist não publicada, mas o CDN da origem está acessível - confirmado no
-  workspace e usado pela task de ingestão), 1 SQL
-  Warehouse 2X-Small.
+  allowlist não publicada **que varia entre workspaces**: no workspace onde a
+  solução foi construída o CDN da origem resolve e a task de ingestão baixa os
+  dados, enquanto em outro workspace da mesma edição o mesmo host não resolve,
+  embora `pypi.org`, `github.com` e `s3.amazonaws.com` resolvam. Por isso a
+  ingestão detecta a landing já carregada e dispensa a rede, e existe a ação
+  `landing` para carregá-la a partir da sua máquina), 1 SQL Warehouse
+  2X-Small.
 - Orquestração via job único do Asset Bundle, **sem agendamento nem
   monitoramento de produção** (adequado ao case).
 - **FHV/FHVHV fora de escopo** (sem `passenger_count`).

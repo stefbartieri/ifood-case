@@ -113,6 +113,37 @@ exatamente isso que estas consultas provam.
 
 ---
 
+## Quando a landing já está carregada
+
+A task mede a landing **antes** de tocar a rede. Com os 10 arquivos presentes e
+os totais por frota batendo, ela imprime `Landing integra: True`, pula o teste
+de fumaça e o download, e vai direto para a verificação final. É isso que
+mantém o pipeline reproduzível onde o egresso não alcança a origem.
+
+O critério é conservador de propósito: só vale para o escopo completo, porque o
+único invariante conhecido é a soma de bytes por frota. Em escopo parcial a
+rede volta a ser necessária.
+
+## A allowlist varia entre workspaces
+
+O egresso de internet da Free Edition é restrito a uma lista que a plataforma
+não publica, e ela **não é a mesma em todos os workspaces**. Medição feita em
+um workspace onde o CDN da TLC não é alcançável:
+
+| Host | Resultado |
+|---|---|
+| `d37ci6vzurychx.cloudfront.net` (origem da TLC) | DNS não resolve |
+| `www.nyc.gov` | DNS não resolve |
+| `pypi.org` | resolve, HTTPS 200 |
+| `github.com` | resolve, HTTPS 200 |
+| `docs.databricks.com` | resolve, HTTPS 200 |
+| `s3.amazonaws.com` | resolve, conexão OK |
+
+Em outro workspace da mesma edição, a origem resolve normalmente e a task baixa
+os arquivos. Não há explicação confirmada para a diferença. Por isso o projeto
+não depende de a rede estar disponível: existe o caminho de carregar a landing
+da sua máquina, e a ingestão o reconhece sozinha.
+
 ## Se o egresso falhar
 
 A task `ingestao` para no teste de fumaça com uma mensagem explícita apontando
