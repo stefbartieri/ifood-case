@@ -110,6 +110,36 @@ explícitos **sem descartar nenhuma linha**; toda limpeza acontece na gold, com
 regras explícitas e contagem por regra persistida em `dq_metrics`
 (reconciliação obrigatória: `linhas_bronze == linhas_gold + soma(removidas)`).
 
+### Por que não há camada silver
+
+O medalhão canônico tem três camadas, e aqui a silver foi deliberadamente
+omitida: **o trabalho que normalmente caberia a ela já está distribuído entre
+as camadas vizinhas**, e uma silver intermediária seria uma cópia da bronze
+sem transformação própria.
+
+| Responsabilidade típica da silver | Onde está neste projeto |
+|---|---|
+| Conformar schemas divergentes (drift 2023-01 × 2023-02..05) | Bronze -leitura mês a mês com casts explícitos |
+| Unificar fontes (yellow + green) | Bronze -`unionByName` sobre o schema canônico de 24 colunas |
+| Padronizar nomes (`lpep_*`→`tpep_*`, `Airport_fee`→`airport_fee`) | Bronze |
+| Linhagem (`taxi_type`, `source_year_month`, `ingested_at`) | Bronze |
+| Limpeza e regras de qualidade | Gold -R1→R4 com contagem por regra em `dq_metrics` |
+| Derivadas de negócio (`pickup_year_month`, `pickup_hour`) | Gold |
+
+Note que a bronze **não é um espelho cru da origem**: o "raw as-is" está na
+landing, com os parquets originais imutáveis. São, na prática, quatro camadas
+físicas -landing (bruta) → bronze (conformada) → gold (limpa) → views. Dois
+fatores reforçam a escolha: o volume é pequeno (16,5M linhas, <1 GB, build em
+minutos), então materializar um estágio extra não se paga; e há **um único
+consumidor** -uma gold servindo duas perguntas.
+
+**Quando a silver entraria:** com FHV/FHVHV no escopo, dimensões
+(`taxi_zone_lookup`) para enriquecer as corridas, ou várias marts (financeira,
+operacional, geográfica) sobre a mesma base. Aí a limpeza sairia da gold e
+passaria a ser aplicada uma única vez na silver, evitando que cada mart
+reescrevesse as mesmas regras de negócio -que é exatamente a dívida consciente
+assumida hoje.
+
 ## Estrutura do repositório
 
 ```text
