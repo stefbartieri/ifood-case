@@ -19,7 +19,7 @@
 [Como executar](#como-executar) •
 [Resultados](#resultados-e-interpretação) •
 [Justificativas](#justificativas-técnicas) •
-[Dashboard](#extra--dashboard)
+[Dashboard](#extra---dashboard)
 
 </div>
 
