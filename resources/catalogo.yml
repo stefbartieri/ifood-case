@@ -1,0 +1,32 @@
+# Objetos de catalogo como codigo: os 3 schemas do medalhao e o Volume da
+# landing. Sem isso o `bundle deploy` so funciona em workspace onde alguem ja
+# tenha rodado o SQL de setup na mao - com isso, um workspace zerado sai do
+# nada ao pipeline completo com os mesmos 3 comandos.
+#
+# ATENCAO: schemas declarados aqui passam a ser gerenciados pelo bundle, entao
+# `databricks bundle destroy` os remove junto com as tabelas. Em workspace que
+# ja tenha os objetos criados na mao, adote-os antes de deployar:
+#   databricks bundle deployment bind nyc_taxi_bronze workspace.nyc_taxi_bronze
+resources:
+  schemas:
+    nyc_taxi_landing:
+      catalog_name: ${var.catalog}
+      name: nyc_taxi_landing
+      comment: "Landing imutavel: parquets originais da NYC TLC, como baixados."
+
+    nyc_taxi_bronze:
+      catalog_name: ${var.catalog}
+      name: nyc_taxi_bronze
+      comment: "Bronze: yellow+green unificados no schema canonico, sem filtro."
+
+    nyc_taxi_gold:
+      catalog_name: ${var.catalog}
+      name: nyc_taxi_gold
+      comment: "Gold: camada de consumo limpa, metricas de DQ e quarentena."
+
+  volumes:
+    landing_files:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.nyc_taxi_landing.name}
+      name: files
+      comment: "Arquivos da landing em {yellow|green}/2023/, nomes preservados."
