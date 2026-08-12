@@ -1,4 +1,5 @@
-# Job do pipeline como codigo: ingestao -> bronze -> gold -> views -> analises.
+# Job do pipeline como codigo:
+# ingestao -> bronze -> gold -> views -> analises -> governanca.
 # Tasks sem configuracao de cluster rodam em compute serverless (unico
 # disponivel na Free Edition e portatil para qualquer workspace com
 # serverless habilitado).
@@ -47,3 +48,9 @@ resources:
             - task_key: analise_p1
           notebook_task:
             notebook_path: ../analysis/03_resposta_p2_media_passageiros_hora_maio.py
+
+        - task_key: governanca
+          depends_on:
+            - task_key: analise_p2
+          notebook_task:
+            notebook_path: ../src/governance/aplicar_metadados.py
